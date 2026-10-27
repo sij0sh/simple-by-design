@@ -34,3 +34,7 @@ Releases are tagged.
 ## 0.0.8 - 2026-10-27
 
 - Add Java language profile.
+
+## 0.0.9 - 2026-10-27
+
+- Add SKILL.md with routing, loop, gate, verify, and missing-profile rules.
