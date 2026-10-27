@@ -6,3 +6,7 @@ Releases are tagged.
 ## 0.0.1 - 2026-10-27
 
 - Scaffold repository, license, version, and directory tree.
+
+## 0.0.2 - 2026-10-27
+
+- Add eval fixture, four tasks, rubric, and results directory.
