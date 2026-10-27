@@ -111,3 +111,9 @@ First release.
 - Add C profile and C marker.
 - Use clang-tidy with compile commands for C; keep cppcheck as the fallback
   when no compile database exists.
+
+## 0.1.8 - 2026-10-27
+
+- Add all ten language profiles: TypeScript, Python, Go, Java, JavaScript,
+  C#, Rust, SQL, C, and C++.
+- Add profile consistency check and document profile coverage and limits.

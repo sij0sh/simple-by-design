@@ -72,14 +72,17 @@ The smallest diff is not always the best solution. The preferred solution is the
 - `SKILL.md` — the agent entry point and workflow routing.
 - `standards/contract.md` — the authoritative coding and architecture rules.
 - `standards/local-reasoning.md` — the rationale behind the style.
-- `languages/` — language-specific guidance where available.
+- `languages/` — profiles for TypeScript, Python, Go, Java, JavaScript, C#, Rust, SQL, C, and C++.
 - `workflows/preflight.md` — checks before implementation and architectural approval gates.
 - `workflows/review.md` — post-change review and completion criteria.
 - `scripts/verify.sh` — the verification entry point.
+- `scripts/check-profiles.sh` — checks that profiles and verify.sh stay in sync.
 
 The skill description is intended to be the entry point, rather than requiring a separate repository-level `AGENTS.md` or `CLAUDE.md`. Make sure your coding agent supports and discovers skills in the environment where you use it.
 
 When a language profile is unavailable, the agent applies the universal standards and reports the limitation.
+
+SQL coverage focuses on schema ownership and migrations. SQLFluff checks style; ownership remains a review rule. C and C++ profile commands assume a CMake build or a repository entry point.
 
 ## Guidance is not enforcement
 
