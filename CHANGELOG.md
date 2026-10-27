@@ -43,3 +43,8 @@ Releases are tagged.
 
 - Add verify.sh with entry-point resolution, stack detection, strict mode,
   profile selection, and skip status for missing tools.
+
+## 0.0.11 - 2026-10-27
+
+- Add boundary configs for TypeScript, Python, Go, and Java plus a trimmed
+  AGENTS.md template.

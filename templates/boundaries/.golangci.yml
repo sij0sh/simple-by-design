@@ -1,0 +1,19 @@
+# golangci-lint v2 starter for internal/<capability>.
+# Go rejects import cycles at compile time. depguard enforces internals.
+version: "2"
+
+linters:
+  enable:
+    - depguard
+  settings:
+    depguard:
+      rules:
+        main:
+          files:
+            - "$all"
+          deny:
+            # Replace example.com and the module names with your module path.
+            - pkg: "example.com/orders/internal"
+              desc: "orders internals are private; use its public package"
+            - pkg: "example.com/billing/internal"
+              desc: "billing internals are private; use its public package"

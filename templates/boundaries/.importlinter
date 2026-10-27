@@ -1,0 +1,30 @@
+# Import Linter starter for src/modules/<capability>.
+# Set root_package to the importable top-level package.
+[importlinter]
+root_package = modules
+
+[importlinter:contract:no-cross-module-internals]
+name = No cross-module internals
+type = forbidden
+source_modules =
+    modules.orders
+    modules.billing
+forbidden_modules =
+    modules.orders.domain
+    modules.orders.persistence
+    modules.billing.domain
+    modules.billing.persistence
+
+# Replace orders and billing with your capabilities.
+# Add one domain/ and persistence/ entry per module.
+#
+# For strict isolation, add an independence contract:
+# [importlinter:contract:modules-independent]
+# name = Modules are independent
+# type = independence
+# modules =
+#     modules.orders
+#     modules.billing
+#
+# Python can create import cycles; the independence contract forbids them
+# by forbidding all cross-module imports.
