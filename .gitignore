@@ -1,0 +1,10 @@
+.agents/artifacts/
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+dist/
+build/
+coverage/
+*.log
