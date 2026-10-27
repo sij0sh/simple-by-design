@@ -10,3 +10,7 @@ Releases are tagged.
 ## 0.0.2 - 2026-10-27
 
 - Add eval fixture, four tasks, rubric, and results directory.
+
+## 0.0.3 - 2026-10-27
+
+- Add local-reasoning style rationale and enforceable style contract.
