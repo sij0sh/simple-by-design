@@ -43,7 +43,7 @@ done
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 profiles_dir="$script_dir/../languages"
-profiles=(typescript python go java javascript csharp)
+profiles=(typescript python go java javascript csharp rust)
 
 if [[ ! -d "$profiles_dir" ]]; then
   printf 'verify: profiles directory not found: %s\n' "$profiles_dir" >&2
@@ -73,6 +73,7 @@ has_marker() {
     go) [[ -f go.mod ]] ;;
     java) [[ -f pom.xml || -f build.gradle || -f build.gradle.kts ]] ;;
     csharp) has_source sln || has_source csproj ;;
+    rust) [[ -f Cargo.toml ]] ;;
     *) return 1 ;;
   esac
 }
@@ -197,6 +198,18 @@ tool_missing() {
     fi
   fi
 
+  if [[ "$first" == "cargo" ]]; then
+    rest=${cmd#*cargo}
+    rest="${rest#"${rest%%[![:space:]]*}"}"
+    tool=$(first_word "$rest")
+    if [[ "$tool" == "deny" ]]; then
+      if command -v cargo-deny >/dev/null 2>&1; then
+        return 1
+      fi
+      return 0
+    fi
+  fi
+
   if [[ "$first" == ./* || "$first" == /* ]]; then
     if [[ -x "$first" ]]; then
       return 1
@@ -208,6 +221,32 @@ tool_missing() {
     return 1
   fi
   return 0
+}
+
+missing_tool_name() {
+  local cmd=$1 first rest tool
+  first=$(first_word "$cmd")
+  if [[ "$first" == "npx" ]]; then
+    rest=${cmd#*npx}
+    rest="${rest#"${rest%%[![:space:]]*}"}"
+    if [[ "$rest" == --no-install* ]]; then
+      rest=${rest#--no-install}
+      rest="${rest#"${rest%%[![:space:]]*}"}"
+      tool=$(first_word "$rest")
+      printf '%s\n' "$tool"
+      return
+    fi
+  fi
+  if [[ "$first" == "cargo" ]]; then
+    rest=${cmd#*cargo}
+    rest="${rest#"${rest%%[![:space:]]*}"}"
+    tool=$(first_word "$rest")
+    if [[ "$tool" == "deny" ]]; then
+      printf 'cargo-deny\n'
+      return
+    fi
+  fi
+  printf '%s\n' "$first"
 }
 
 tmp_dir=$(mktemp -d)
@@ -247,7 +286,7 @@ run_check() {
     if [[ -s "$out_file" ]]; then
       sed 's/^/  /' "$out_file"
     elif tool_missing "$cmd"; then
-      printf '  missing tool: %s\n' "$(first_word "$cmd")"
+      printf '  missing tool: %s\n' "$(missing_tool_name "$cmd")"
     fi
   fi
 }

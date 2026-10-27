@@ -89,3 +89,8 @@ First release.
 ## 0.1.3 - 2026-10-27
 
 - Add C# profile and NetArchTest boundary template.
+
+## 0.1.4 - 2026-10-27
+
+- Add Rust profile, cargo-deny starter, and Cargo marker.
+- Report the actual missing subcommand tool for `npx` and `cargo deny`.
