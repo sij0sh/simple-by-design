@@ -22,3 +22,7 @@ Releases are tagged.
 ## 0.0.5 - 2026-10-27
 
 - Add TypeScript language profile.
+
+## 0.0.6 - 2026-10-27
+
+- Add Python language profile.
