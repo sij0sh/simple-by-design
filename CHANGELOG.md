@@ -99,3 +99,9 @@ First release.
 
 - Add SQL profile, migration marker, and SQLFluff starter.
 - State that SQL ownership is a review rule; SQLFluff checks style only.
+
+## 0.1.6 - 2026-10-27
+
+- Add C++ profile, CMake layering guard, clang-tidy starter, and C++ marker.
+- Generate compile commands in the verify block so clang-tidy can resolve
+  targets.

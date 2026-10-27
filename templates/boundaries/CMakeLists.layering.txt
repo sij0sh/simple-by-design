@@ -1,0 +1,21 @@
+# CMake layering starter. Copy into the repository's top-level CMakeLists.txt.
+#
+# Keep dependency direction explicit:
+#   api         -> domain
+#   persistence -> domain
+#   domain      -> domain or small shared targets only
+#
+# Call after target_link_libraries:
+#   sbd_forbid_link(orders_domain orders_api)
+
+function(sbd_forbid_link target forbidden)
+  get_target_property(linked "${target}" LINK_LIBRARIES)
+  if(NOT linked)
+    return()
+  endif()
+  foreach(dep IN LISTS linked)
+    if(dep STREQUAL "${forbidden}")
+      message(FATAL_ERROR "${target} must not link ${forbidden}")
+    endif()
+  endforeach()
+endfunction()
