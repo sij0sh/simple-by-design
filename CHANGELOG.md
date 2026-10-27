@@ -30,3 +30,7 @@ Releases are tagged.
 ## 0.0.7 - 2026-10-27
 
 - Add Go language profile.
+
+## 0.0.8 - 2026-10-27
+
+- Add Java language profile.
