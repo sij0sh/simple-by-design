@@ -38,3 +38,8 @@ Releases are tagged.
 ## 0.0.9 - 2026-10-27
 
 - Add SKILL.md with routing, loop, gate, verify, and missing-profile rules.
+
+## 0.0.10 - 2026-10-27
+
+- Add verify.sh with entry-point resolution, stack detection, strict mode,
+  profile selection, and skip status for missing tools.
