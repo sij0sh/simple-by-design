@@ -18,3 +18,7 @@ Releases are tagged.
 ## 0.0.4 - 2026-10-27
 
 - Add preflight checks, gate triggers, plan template, and review criteria.
+
+## 0.0.5 - 2026-10-27
+
+- Add TypeScript language profile.
