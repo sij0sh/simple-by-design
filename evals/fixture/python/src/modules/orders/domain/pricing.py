@@ -8,7 +8,7 @@ def subtotal_cents(order: Order) -> int:
 def discount_cents(order: Order) -> int:
     if not 0 <= order.discount_percent <= 100:
         raise ValueError("discount_percent must be between 0 and 100")
-    return int(subtotal_cents(order) * order.discount_percent / 100)
+    return round(subtotal_cents(order) * order.discount_percent / 100)
 
 
 def total_cents(order: Order) -> int:

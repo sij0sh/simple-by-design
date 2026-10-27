@@ -53,3 +53,8 @@ Releases are tagged.
 
 - Add a TS and Python reference feature with api/domain/persistence split,
   boundary validation, and behavioral tests.
+
+## 0.0.13 - 2026-10-27
+
+- Seed the small-fix bug on demand, keep the fixture otherwise green, and
+  record baseline and skill eval results.

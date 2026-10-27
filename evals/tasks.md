@@ -6,9 +6,11 @@ Acceptance is judged with `evals/rubric.md`.
 
 ## 1. Small fix
 
-Orders discounts round down. For a single line of 6699 cents at 15 percent,
-the total should be 5694. Fix the orders domain calculation.
-Run the orders tests. Do not change billing.
+Seed the bug first: `evals/fixture/seed-small-fix.sh <fixture-copy>`.
+Orders discounts currently round down. Billing rounds to the nearest cent.
+For a single line of 6699 cents at 15 percent, the total should be 5694.
+Fix the orders domain calculation to match billing. Run the orders tests.
+Do not change billing.
 
 ## 2. Endpoint in an existing module
 
