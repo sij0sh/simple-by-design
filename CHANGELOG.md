@@ -58,3 +58,8 @@ Releases are tagged.
 
 - Seed the small-fix bug on demand, keep the fixture otherwise green, and
   record baseline and skill eval results.
+
+## 0.0.14 - 2026-10-27
+
+- Add README with install, quick start, verify, limits, and uninstall.
+- Keep verify.sh compatible with Bash 3.2.

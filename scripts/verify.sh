@@ -60,17 +60,26 @@ has_marker() {
   esac
 }
 
+contains() {
+  local needle=$1 item
+  shift
+  for item in "$@"; do
+    if [[ "$item" == "$needle" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 selected=()
-declare -A seen=()
 if ((${#only[@]} > 0)); then
   for lang in "${only[@]}"; do
     if [[ ! -f "$profiles_dir/$lang.md" ]]; then
       printf 'verify: unknown profile: %s\n' "$lang" >&2
       exit 2
     fi
-    if [[ -z "${seen[$lang]:-}" ]]; then
+    if ! contains "$lang" "${selected[@]:-}"; then
       selected+=("$lang")
-      seen[$lang]=1
     fi
   done
 else
