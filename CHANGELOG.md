@@ -63,3 +63,10 @@ Releases are tagged.
 
 - Add README with install, quick start, verify, limits, and uninstall.
 - Keep verify.sh compatible with Bash 3.2.
+
+## 0.1.0 - 2026-10-27
+
+First release.
+- Ship the Local Reasoning style, four language profiles, preflight and review
+  workflows, boundary templates, verify.sh, reference feature, and eval results.
+- Enforcement is advisory. SimpleGuard and CI gates start in 0.2.0.
