@@ -94,3 +94,8 @@ First release.
 
 - Add Rust profile, cargo-deny starter, and Cargo marker.
 - Report the actual missing subcommand tool for `npx` and `cargo deny`.
+
+## 0.1.5 - 2026-10-27
+
+- Add SQL profile, migration marker, and SQLFluff starter.
+- State that SQL ownership is a review rule; SQLFluff checks style only.

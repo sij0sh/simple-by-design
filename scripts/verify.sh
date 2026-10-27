@@ -43,7 +43,7 @@ done
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 profiles_dir="$script_dir/../languages"
-profiles=(typescript python go java javascript csharp rust)
+profiles=(typescript python go java javascript csharp rust sql)
 
 if [[ ! -d "$profiles_dir" ]]; then
   printf 'verify: profiles directory not found: %s\n' "$profiles_dir" >&2
@@ -57,6 +57,16 @@ has_source() {
        -o -name target -o -name bin -o -name obj -o -name dist \) -prune -o \
     -name "*.$ext" -print 2>/dev/null | head -n 1)
   [[ -n "$found" ]]
+}
+
+has_root_file() {
+  local pattern=$1 file
+  for file in $pattern; do
+    if [[ -e "$file" ]]; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 has_marker() {
@@ -74,6 +84,7 @@ has_marker() {
     java) [[ -f pom.xml || -f build.gradle || -f build.gradle.kts ]] ;;
     csharp) has_source sln || has_source csproj ;;
     rust) [[ -f Cargo.toml ]] ;;
+    sql) [[ -d migrations || -d db/migrations ]] || has_root_file '*.sql' ;;
     *) return 1 ;;
   esac
 }
