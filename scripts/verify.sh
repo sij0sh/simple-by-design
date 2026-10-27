@@ -43,16 +43,32 @@ done
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 profiles_dir="$script_dir/../languages"
-profiles=(typescript python go java)
+profiles=(typescript python go java javascript)
 
 if [[ ! -d "$profiles_dir" ]]; then
   printf 'verify: profiles directory not found: %s\n' "$profiles_dir" >&2
   exit 2
 fi
 
+has_source() {
+  local ext=$1 found
+  found=$(find . \
+    \( -name .git -o -name node_modules -o -name vendor -o -name build \
+       -o -name target -o -name bin -o -name obj -o -name dist \) -prune -o \
+    -name "*.$ext" -print 2>/dev/null | head -n 1)
+  [[ -n "$found" ]]
+}
+
 has_marker() {
   case "$1" in
-    typescript) [[ -f package.json && -f tsconfig.json ]] ;;
+    typescript)
+      [[ -f package.json && -f tsconfig.json ]] || return 1
+      has_source ts || has_source tsx
+      ;;
+    javascript)
+      [[ -f package.json ]] || return 1
+      ! has_source ts && ! has_source tsx
+      ;;
     python) [[ -f pyproject.toml ]] ;;
     go) [[ -f go.mod ]] ;;
     java) [[ -f pom.xml || -f build.gradle || -f build.gradle.kts ]] ;;

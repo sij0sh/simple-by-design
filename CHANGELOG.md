@@ -79,3 +79,9 @@ First release.
   split. Require unreported or skipped checks to be stated, not implied.
 - Make contract, standards, and profiles advisory where repository
   conventions are clear. Drop the AGENTS.md template.
+
+## 0.1.2 - 2026-10-27
+
+- Add JavaScript profile and stack marker.
+- Require TypeScript source for the TypeScript marker so plain JavaScript
+  repositories are not misclassified.
