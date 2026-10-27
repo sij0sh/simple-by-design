@@ -14,3 +14,7 @@ Releases are tagged.
 ## 0.0.3 - 2026-10-27
 
 - Add local-reasoning style rationale and enforceable style contract.
+
+## 0.0.4 - 2026-10-27
+
+- Add preflight checks, gate triggers, plan template, and review criteria.
