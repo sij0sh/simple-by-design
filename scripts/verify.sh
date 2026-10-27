@@ -43,7 +43,7 @@ done
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 profiles_dir="$script_dir/../languages"
-profiles=(typescript python go java javascript)
+profiles=(typescript python go java javascript csharp)
 
 if [[ ! -d "$profiles_dir" ]]; then
   printf 'verify: profiles directory not found: %s\n' "$profiles_dir" >&2
@@ -72,6 +72,7 @@ has_marker() {
     python) [[ -f pyproject.toml ]] ;;
     go) [[ -f go.mod ]] ;;
     java) [[ -f pom.xml || -f build.gradle || -f build.gradle.kts ]] ;;
+    csharp) has_source sln || has_source csproj ;;
     *) return 1 ;;
   esac
 }

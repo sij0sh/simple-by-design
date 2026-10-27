@@ -85,3 +85,7 @@ First release.
 - Add JavaScript profile and stack marker.
 - Require TypeScript source for the TypeScript marker so plain JavaScript
   repositories are not misclassified.
+
+## 0.1.3 - 2026-10-27
+
+- Add C# profile and NetArchTest boundary template.
