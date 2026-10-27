@@ -8,3 +8,8 @@ dist/
 build/
 coverage/
 *.log
+.pytest_cache/
+.ruff_cache/
+.import_linter_cache/
+.mypy_cache/
+*.egg-info/

@@ -48,3 +48,8 @@ Releases are tagged.
 
 - Add boundary configs for TypeScript, Python, Go, and Java plus a trimmed
   AGENTS.md template.
+
+## 0.0.12 - 2026-10-27
+
+- Add a TS and Python reference feature with api/domain/persistence split,
+  boundary validation, and behavioral tests.
