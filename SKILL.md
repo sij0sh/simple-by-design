@@ -1,58 +1,24 @@
 ---
 name: simple-by-design
-description: Plan, implement, and verify code changes with minimal architectural complexity. Use before adding modules, abstractions, dependencies, or cross-boundary imports, and when reviewing a diff or refactor.
+description: Must use for any code change, bug fix, refactor, code review, or implementation design.
 ---
 
 # Simple by Design
 
-Simple by Design is the process. Local Reasoning is the philosophy. SimpleGuard
-is enforcement, planned for 0.2.0.
-
-## Non-negotiables
-
-- Optimize for local reasoning: understand, change, and test one capability
-  without knowing the whole system.
-- Simple means cheap to understand and change, not short.
-- Every rule must be objective, automatable where practical, and justifiable.
-- No arbitrary line, class, or function limits.
+Optimize for local reasoning: minimize the unrelated context needed to understand, change, and test a capability.
 
 ## Routing
 
-Load only the files a run needs.
-
-| Question | Read |
+| Task | Read |
 |---|---|
-| Architecture or ownership | `standards/local-reasoning.md`, `standards/contract.md` |
-| Language patterns | `languages/<language>.md` |
-| Any code change | `workflows/preflight.md` |
-| After a change | `workflows/review.md` |
+| Before any code edit | `workflows/preflight.md`, `standards/contract.md` |
+| Language-specific work | `languages/<language>.md` if present |
+| Unclear ownership or boundaries | `standards/local-reasoning.md` |
+| Diff review or after editing | `workflows/review.md`, `standards/contract.md` |
+| Configure boundary checks | Relevant file in `templates/boundaries/` |
 
-## Loop
+## Execution
 
-1. Understand: read the owning module and a comparable implementation.
-2. Plan: name the smallest change, files, boundaries, dependencies, and tests.
-3. Architecture gate: apply the preflight triggers.
-4. Implement: stay inside the owning module.
-5. Verify: run the commands selected in preflight.
-
-## Gate rule
-
-Run the preflight checks for every change. If a gate trigger hits, emit the
-plan and wait for approval. Otherwise proceed without a planning stop.
-
-## Verify
-
-Run `scripts/verify.sh` from the target repo. Add `--strict` when a missing
-tool should fail. Report skipped checks and any command you did not run.
-
-## Missing profile
-
-If `languages/<language>.md` does not exist, apply `standards/` only and state
-that in the report. Profiles for c, cpp, csharp, javascript, rust, and sql
-arrive in 0.1.1.
-
-## Templates
-
-Start from `templates/boundaries/` for static boundary checks. Copy
-`templates/AGENTS.md` into a target repo and fill the module and verify
-placeholders.
+- Follow preflight. If an approval gate triggers, present the plan and wait; otherwise implement.
+- After editing, review the diff and run `scripts/verify.sh` with the target repo as the working directory. Resolve the script relative to this skill's directory.
+- Report failed or skipped checks and missing language profiles.

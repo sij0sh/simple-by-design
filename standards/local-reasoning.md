@@ -1,57 +1,52 @@
-# Local Reasoning - Coding Style v1.0
+# Local Reasoning — Coding Style v1.1
 
-This file explains why the style exists. `standards/contract.md` holds the
-rules. Language profiles only add or specialize, never repeat.
+This file explains why the style exists. `standards/contract.md` is authoritative for code rules. `workflows/preflight.md` owns pre-edit checks and approval gates; `workflows/review.md` owns post-change review.
 
-## Governing sentence
+Language profiles may add language-specific rules or specialize universal rules. They should not repeat rules that already apply unchanged.
 
-Optimize for local reasoning. A developer should be able to understand, change,
-and test a business capability without understanding the entire system.
+## Governing idea
+
+Optimize for local reasoning. A developer should be able to understand, change, and test a business capability without understanding the entire system.
 
 ## Principles
 
-1. Localize. Keep related data, behavior, and decisions together.
-2. Expose. Make dependencies, state, ownership, and side effects visible.
-3. Minimize. Use the fewest abstractions and concepts that solve the problem.
-4. Standardize. Solve similar problems with consistent patterns.
-5. Verify. Make boundaries and behavior cheap to check.
+1. **Localize.** Related data, behavior, and decisions belong together.
+2. **Expose.** Visible dependencies, state, ownership, and side effects make behavior easier to trace.
+3. **Minimize.** Every additional concept costs attention; introduce one only when its benefit justifies that cost.
+4. **Standardize.** Familiar patterns reduce the effort required to understand and review code.
+5. **Verify.** Clear boundaries and observable behavior make correctness cheaper to check.
 
-## Standards
+## Design implications
 
-1. Clear boundaries. Group code by business capability. A module owns one
-   responsibility, and its name says which one.
-2. One-way dependencies. Predictable direction stops a local change from
-   rippling through unrelated modules.
-3. Explicit over implicit. Visible flow and dependencies let a reader follow
-   the code without reconstructing hidden state.
-4. Locality of change. Most features should fit in one module; the need to
-   edit many modules usually means ownership is wrong.
-5. Single source of truth. One owner per business rule, calculation, and piece
-   of state keeps behavior predictable and edits cheap.
-6. Abstraction earns its place. Every new interface, factory, or base class is
-   a concept a reader must hold; repeated use or a real substitution need pays
-   for it.
-7. Consistency over cleverness. Familiar patterns reduce review cost and make
-   defects stand out.
-8. Business and infrastructure split. Domain rules stay readable without
-   knowing HTTP, queues, databases, or framework internals.
-9. Test behavior. Observable outcomes and invariants survive refactors;
-   tests bound to internals make every change expensive.
-10. Delete before adding. Removing obsolete paths and needless machinery is
-    usually safer than extending them.
+1. **Capability ownership.** Organize code around cohesive business capabilities so developers can find where behavior belongs.
+2. **Predictable dependencies.** One-way dependency flow limits how far changes can propagate.
+3. **Explicit behavior.** Visible control flow and dependencies reduce the need to reconstruct hidden state.
+4. **Locality of change.** A feature that routinely requires unrelated modules to change may indicate unclear ownership or excessive coupling.
+5. **Single source of truth.** One authoritative owner for each business rule, calculation, and piece of state prevents divergent behavior.
+6. **Justified abstractions.** Interfaces, factories, base classes, and extra layers add concepts. Reuse, genuine substitution, or meaningful isolation of complexity can justify them; abstraction alone is not a benefit.
+7. **Consistency.** Familiar patterns make code easier to compare and defects easier to notice.
+8. **Separated concerns.** Business decisions should remain understandable without needing to understand transport, storage, or framework details.
+9. **Behavior-focused tests.** Tests of observable outcomes and invariants give confidence when implementation details change.
+10. **Deletion.** Removing obsolete paths and machinery reduces the number of concepts and behaviors developers must account for.
 
-## Measures
+These implications explain the contract; they are not a separate approval policy or an additional checklist.
 
-- Change surface: modules and files that must change for one feature.
-- Cognitive load: how much of the system a developer must hold to work safely.
-- Coupling: how many modules can break from one change.
-- Discoverability: how quickly a developer can find where behavior belongs.
-- Predictability: whether code behaves as its structure and names suggest.
-- Deletion cost: whether unused functionality can leave without a hunt.
+## Review lenses
 
-## Capability layout
+Use these as qualitative signals, not quotas or numeric thresholds.
 
-```
+- **Change surface:** How many modules and files must change for the feature?
+- **Cognitive load:** How much of the system must a developer understand to make a safe change?
+- **Coupling:** How many other modules could be affected by one change?
+- **Discoverability:** How quickly can a developer find the owner of a behavior?
+- **Predictability:** Does the code behave as its structure and names suggest?
+- **Deletion cost:** Can obsolete functionality be removed without tracing unnecessary dependencies?
+
+A large change surface is not automatically wrong. Assess whether the affected modules have legitimate ownership and dependency relationships.
+
+## Illustrative capability layout
+
+```text
 src/
   modules/
     <capability>/
@@ -64,9 +59,9 @@ src/
     config/
 ```
 
-`shared/` holds cross-cutting infrastructure only. It is not a dumping ground
-for code that has no owner. A capability owns its business rules and exposes a
-small, intentional interface.
+This is an example, not a required directory structure. Create folders and layers only when the code needs them.
+
+`shared/` is for genuinely cross-cutting infrastructure, not a default home for business logic without a clear owner. A capability should own its business rules and expose a small, intentional interface where cross-capability access is needed.
 
 ## Closing
 

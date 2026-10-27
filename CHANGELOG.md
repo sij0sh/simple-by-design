@@ -70,3 +70,12 @@ First release.
 - Ship the Local Reasoning style, four language profiles, preflight and review
   workflows, boundary templates, verify.sh, reference feature, and eval results.
 - Enforcement is advisory. SimpleGuard and CI gates start in 0.2.0.
+
+## 0.1.1 - 2026-10-27
+
+- Rewrite README and SKILL.md around the decision-policy framing.
+- Replace file-path gate triggers with architectural approval gates.
+- Add review procedure, finding detail, and hard-fail versus review-prompt
+  split. Require unreported or skipped checks to be stated, not implied.
+- Make contract, standards, and profiles advisory where repository
+  conventions are clear. Drop the AGENTS.md template.

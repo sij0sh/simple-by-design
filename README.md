@@ -1,182 +1,94 @@
 # Simple by Design
 
-**A portable skill that makes coding agents plan, implement, and verify changes with minimal architectural complexity.**
+> **Complexity is easy. Simple is hard.**
 
-Agent prompts list good architecture rules. They do not force a plan, detect a
-cross-module import, or run the checks that already exist in the repo. The
-result is the same review comments every time: another wrapper, another
-abstraction, another boundary crossed without a decision.
+Simple by Design is a coding-agent skill built around a predetermined coding style. It helps developers and coding agents make consistent, deliberate codebase decisions without reconsidering the same architectural questions for every change.
 
-Simple by Design turns those rules into a versioned workflow the agent loads
-when a task needs it.
+The goal is to reduce the cognitive load required to make good decisions.
 
-- **Simple by Design** is the process.
-- **Local Reasoning** is the philosophy.
-- **SimpleGuard** is enforcement, planned for 0.2.0.
+**Simple doesn't mean less code. It means less unnecessary complexity to understand, change, and verify.**
 
-## What changes
+## Why it exists
 
-| Without the skill | With the skill |
-|---|---|
-| An agent extracts a shared helper for two similar handlers | The preflight asks whether the abstraction has demonstrated value |
-| An agent imports another module's internals | The gate stops for a boundary plan before editing |
-| Rules drift between prompts and agents | Standards, profiles, and workflows are versioned in one place |
-| Verification is whatever the agent remembers | `scripts/verify.sh` runs the repo entry point or the language profile checks |
-| Review catches the same defects after the change | The same questions run before and after the change |
+Every code change creates decisions:
 
-## How it fits together
+- Where should this behavior live?
+- Should this become a new abstraction?
+- Which module should own this rule or state?
+- How should dependencies flow?
+- Should this follow an existing pattern or introduce a new one?
+- What needs to be tested?
 
-```text
-                    +----------------------+
-   code change ---->| SKILL.md             |
-                    | routing + gate rule  |
-                    +----------+-----------+
-                               |
-           +-------------------+-------------------+
-           |                   |                   |
-     standards/          languages/          workflows/
-     why + rules         per-language        preflight
-                         patterns            review
-           |                   |                   |
-           +-------------------+-------------------+
-                               |
-                       scripts/verify.sh
-                       repo entry point
-                       or profile checks
-```
+Without shared defaults, these decisions are repeatedly made from scratch. Different developers and agents may reach different answers, creating inconsistency, unnecessary abstractions, and harder-to-maintain boundaries.
 
-## Install
+Simple by Design establishes preferred answers to common questions.
 
-Requires a harness that supports Agent Skills, such as Pi. The skill uses
-Markdown and Bash. No runtime dependencies.
+This doesn't eliminate judgment. It reserves judgment for decisions that actually matter.
 
-```bash
-mkdir -p ~/.agents/skills
-git clone git@github.com:sij0sh/simple-by-design.git ~/.agents/skills/simple-by-design
-```
+## The principle: Local Reasoning
 
-For a project-local install:
+Local Reasoning is the coding philosophy behind Simple by Design:
 
-```bash
-mkdir -p .agents/skills
-git clone git@github.com:sij0sh/simple-by-design.git .agents/skills/simple-by-design
-```
+> A developer should be able to understand, change, and test a business capability without understanding the entire system.
 
-Pi and other Agent Skills harnesses discover both locations. Update an
-existing install with `git -C ~/.agents/skills/simple-by-design pull`.
+It prioritizes five principles:
 
-Pi package install arrives with `simple-guard` in 0.2.0.
+1. **Localize** — Keep related data, behavior, and decisions together.
+2. **Expose** — Make dependencies, ownership, state, and side effects visible.
+3. **Minimize** — Introduce the fewest concepts and abstractions needed to solve the problem well.
+4. **Standardize** — Solve similar problems with consistent, familiar patterns.
+5. **Verify** — Make boundaries and behavior straightforward to check.
 
-## Quick start
+These principles favor clear ownership, predictable dependencies, small intentional interfaces, and behavior-focused tests.
 
-From a repository with a pending change:
+They do not prescribe arbitrary limits on lines, files, classes, or functions.
 
-```bash
-pi -p "/skill:simple-by-design review the current diff"
-```
+## How it works
 
-The agent loads `workflows/review.md` and reports blockers, fixes, and notes.
-For a code change, the same skill runs `workflows/preflight.md` before editing
-and `scripts/verify.sh` after.
+Simple by Design guides a coding agent through a consistent workflow.
 
-In an interactive Pi session:
+1. **Understand.** Identify the module that owns the behavior and inspect comparable code.
+2. **Plan.** Choose the smallest appropriate change, identify affected boundaries, and select verification commands.
+3. **Check.** Evaluate architectural risks before implementation. Changes that cross defined architectural gates require a plan and approval; routine changes proceed without unnecessary ceremony.
+4. **Implement.** Follow established patterns, preserve clear ownership, and avoid unjustified complexity.
+5. **Verify.** Run relevant tests and checks, review the resulting diff, and report exceptions or skipped verification.
 
-```text
-/skill:simple-by-design add a read endpoint to the orders module
-```
+The intent is not to maximize planning or minimize every diff. It is to apply the right amount of scrutiny to each change.
 
-## What is inside
+## What makes it different
 
-| Path | Purpose |
-|---|---|
-| `SKILL.md` | Entry point, routing table, loop, gate rule |
-| `standards/local-reasoning.md` | Why the style exists, 10 standards, measures, layout |
-| `standards/contract.md` | Required defaults, avoid list, 5 enforceable constraints |
-| `languages/` | TypeScript, Python, Go, Java profiles with verify commands |
-| `workflows/` | Preflight checks and post-change review |
-| `templates/` | `AGENTS.md` policy and boundary configs |
-| `scripts/verify.sh` | Entry-point resolution and profile checks |
-| `examples/reference-feature/` | Small TS and Python feature in the target shape |
-| `evals/` | Fixture, tasks, rubric, baseline and skill results |
+Simple by Design treats coding style as a **decision-making policy**, not just a list of formatting preferences.
 
-Read [SKILL.md](./SKILL.md) for the routing. Read
-[standards/local-reasoning.md](./standards/local-reasoning.md) for the
-philosophy and [standards/contract.md](./standards/contract.md) for the rules.
+- **Defaults over repeated debate.** Common design choices have a consistent starting point.
+- **Local changes over widespread coordination.** A feature should generally remain within its owning capability.
+- **Justified abstractions over speculative ones.** New concepts must provide a concrete benefit.
+- **Consistency over cleverness.** Familiar patterns reduce the effort needed to understand and review code.
+- **Verification over trust alone.** Use automated checks wherever rules can be enforced objectively.
 
-## Verify
+The smallest diff is not always the best solution. The preferred solution is the one that solves the problem correctly while introducing the least unnecessary complexity.
 
-Run from the target repo:
+## What's included
 
-```bash
-/path/to/simple-by-design/scripts/verify.sh
-```
+- `SKILL.md` — the agent entry point and workflow routing.
+- `standards/contract.md` — the authoritative coding and architecture rules.
+- `standards/local-reasoning.md` — the rationale behind the style.
+- `languages/` — language-specific guidance where available.
+- `workflows/preflight.md` — checks before implementation and architectural approval gates.
+- `workflows/review.md` — post-change review and completion criteria.
+- `scripts/verify.sh` — the verification entry point.
 
-| Flag | Effect |
-|---|---|
-| `--strict` | A missing tool is a failure instead of a skip |
-| `--only=<language>` | Run a profile even when no stack marker is present; repeatable |
+The skill description is intended to be the entry point, rather than requiring a separate repository-level `AGENTS.md` or `CLAUDE.md`. Make sure your coding agent supports and discovers skills in the environment where you use it.
 
-Resolution order: `SBD_VERIFY_CMD`, `make verify`, `npm run verify`,
-`just verify`, then stack detection and the profile `verify` blocks. The
-script never installs tools, uses the network, or changes Git state.
+When a language profile is unavailable, the agent applies the universal standards and reports the limitation.
 
-The bundled `examples/reference-feature/` is a working TS and Python
-reference.
+## Guidance is not enforcement
 
-## Language profiles
+Agent instructions help guide decisions, but instructions alone cannot guarantee architectural compliance.
 
-v0.1.0 ships TypeScript, Python, Go, and Java. The remaining profiles - C, C++,
-C#, JavaScript, Rust, and SQL - arrive in 0.1.1. A language without a profile
-gets the universal standards only, and the agent says so in the report.
+Use static analysis, tests, dependency-boundary checks, and CI where appropriate to enforce objectively verifiable rules. Keep subjective design judgments as review questions rather than pretending every preference can be reduced to a lint rule.
 
-## Uninstall
+## The intended outcome
 
-```bash
-rm -rf ~/.agents/skills/simple-by-design
-```
+A codebase where developers can make sound changes with less context, fewer unnecessary decisions, and less risk of unintended consequences.
 
-For a project-local install:
-
-```bash
-rm -rf .agents/skills/simple-by-design
-```
-
-The skill writes no data outside its own directory.
-
-## Limits
-
-These are defaults, not proofs of simplicity. The static checks catch cycles,
-cross-module imports, and type errors. Change surface, abstraction growth, and
-duplicated domain logic still need human review. The skill can be ignored by an
-agent; SimpleGuard and CI will add hard gates in 0.2.0.
-
-The v0.1.0 eval used one run per task. Treat the result as directional, not
-statistical. See [the results](./evals/results/v0.1.0.md) and
-[the baseline](./evals/results/baseline.md).
-
-## Troubleshooting
-
-**The skill does not load**
-
-Check that `~/.agents/skills/simple-by-design/SKILL.md` exists, then run
-`/reload` in Pi. Use `/skill:simple-by-design` to force it.
-
-**A verify check is skipped**
-
-The first word of the command was not found on `PATH`. Install the tool or run
-with `--strict` to turn the skip into a failure.
-
-**A language has no profile**
-
-Apply the standards only and note it in the report. The profile lands in 0.1.1.
-
-## More
-
-- [Changelog](./CHANGELOG.md)
-- [Eval tasks](./evals/tasks.md)
-- [Boundary templates](./templates/boundaries/)
-- [Reference feature](./examples/reference-feature/)
-
-## License
-
-MIT. See [LICENSE](./LICENSE).
+**The goal isn't to make every decision for the developer. It's to stop making them repeatedly decide things that should already have a clear answer.**

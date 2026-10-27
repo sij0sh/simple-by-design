@@ -1,42 +1,47 @@
 # Preflight
 
-Run before editing. Read `standards/contract.md` for rules. Read
-`standards/local-reasoning.md` when ownership or a boundary is unclear.
+Run before editing. Read `standards/contract.md`.
+Read `standards/local-reasoning.md` when ownership or boundaries are unclear.
 
 ## Checks
 
-1. Owning module identified. Name the module that owns the behavior.
-2. Canonical implementation inspected. Prefer comparable repository code.
-   Use `examples/reference-feature/` only in a greenfield repo or when no
-   comparable code exists.
-3. Language profile loaded. Read `languages/<language>.md`. If the language
-   has no profile, apply the standards only and say so in the report.
-4. New abstractions justified. Name the repeated use or real substitution.
-5. Affected boundaries listed. Public entries, module roots, manifests.
-6. Verification commands selected. Prefer the repo entry point. Otherwise use
-   the profile `verify` block.
+1. Identify the module that owns the behavior.
+2. Inspect the closest comparable implementation. Use
+   `examples/reference-feature/` only when relevant and no
+   repository example exists.
+3. Load each relevant `languages/<language>.md` profile.
+4. Justify any new architectural abstraction by its concrete need.
+5. Identify affected modules, public APIs, and dependencies.
+6. Select verification commands from the repository entry point,
+   or the language profile. If neither exists, inspect project
+   configuration and report verification gaps.
 
-## Gate triggers
+Resolve unclear ownership before editing. If a language profile
+is missing, apply the universal standards and report the gap.
 
-Any hit requires a written plan and approval before editing.
+## Approval gates
 
-- New directory under a module root.
-- Edit to a module public entry: `index.ts`, `__init__.py`, an exported Go
-  package, or a public Java API.
-- New entry in a dependency manifest.
-- Import that crosses module roots.
+Stop before editing and request approval for:
 
-No hit: run the checks silently and continue.
+- A new module or package boundary.
+- A change to a public API contract.
+- A new external dependency.
+- A new cross-module dependency or boundary crossing.
+- A new architectural abstraction layer or public interface.
 
-## Plan output
+A new directory or an edit to a public-entry file alone is not
+a gate. Assess the architectural change, not just the file path.
 
-```markdown
+If no gate triggers, continue without presenting a plan.
+If a gate triggers, do not edit until the user approves.
+
 ## Plan
 
+- Trigger and rationale:
+- Owning module:
+- Existing pattern:
 - Smallest change:
 - Files touched:
-- Boundaries crossed:
-- Dependencies added:
-- Tests:
-- Exceptions:
-```
+- Boundaries, APIs, dependencies:
+- Verification commands:
+- Exceptions and rationale:
