@@ -105,3 +105,9 @@ First release.
 - Add C++ profile, CMake layering guard, clang-tidy starter, and C++ marker.
 - Generate compile commands in the verify block so clang-tidy can resolve
   targets.
+
+## 0.1.7 - 2026-10-27
+
+- Add C profile and C marker.
+- Use clang-tidy with compile commands for C; keep cppcheck as the fallback
+  when no compile database exists.

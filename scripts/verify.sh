@@ -43,7 +43,7 @@ done
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 profiles_dir="$script_dir/../languages"
-profiles=(typescript python go java javascript csharp rust sql cpp)
+profiles=(typescript python go java javascript csharp rust sql cpp c)
 
 if [[ ! -d "$profiles_dir" ]]; then
   printf 'verify: profiles directory not found: %s\n' "$profiles_dir" >&2
@@ -86,6 +86,7 @@ has_marker() {
     rust) [[ -f Cargo.toml ]] ;;
     sql) [[ -d migrations || -d db/migrations ]] || has_root_file '*.sql' ;;
     cpp) [[ -f CMakeLists.txt ]] && { has_source cpp || has_source cc || has_source cxx; } ;;
+    c) [[ -f CMakeLists.txt || -f Makefile ]] && has_source c && ! has_source cpp && ! has_source cc && ! has_source cxx ;;
     *) return 1 ;;
   esac
 }
