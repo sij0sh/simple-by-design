@@ -1,3 +1,6 @@
+// Example selected layout only; adapt to declared owners and public API.
+// Owner-local tests may inspect internals. Rules below are partial coverage,
+// not proof of every API boundary, cycle or state owner.
 package architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;

@@ -7,14 +7,18 @@ Usage: verify.sh [--strict] [--only=<language>]...
 
 Run the repository verify entry point, or detected language profile checks.
 
-  --strict        Treat a missing tool as a failure.
-  --only=<lang>   Run the named profile even without a stack marker.
+  --strict        Fail on missing tools or undetected checks.
+  --only=<lang>   Select fallback profiles even without a stack marker.
                   Repeat to select more than one profile.
 
 Resolution order: SBD_VERIFY_CMD, make verify, npm run verify, just verify,
 then stack detection and the profile verify blocks.
 
-Exit codes: 0 all pass or skip, 1 any failure, 2 usage.
+Repository entrypoints are authoritative; --only selects fallback profiles only.
+Record entrypoint coverage in repository policy; profile tools are defaults,
+not additional requirements. Failures are never suppressed as legacy baseline.
+
+Exit codes: 0 all pass (or non-strict skips), 1 any failure, 2 usage.
 EOF
 }
 
@@ -55,7 +59,7 @@ has_source() {
   found=$(find . \
     \( -name .git -o -name node_modules -o -name vendor -o -name build \
        -o -name target -o -name bin -o -name obj -o -name dist \) -prune -o \
-    -name "*.$ext" -print 2>/dev/null | head -n 1)
+    -name "*.$ext" -print 2>/dev/null | head -n 1 || true)
   [[ -n "$found" ]]
 }
 
@@ -105,7 +109,7 @@ contains() {
 selected=()
 if ((${#only[@]} > 0)); then
   for lang in "${only[@]}"; do
-    if [[ ! -f "$profiles_dir/$lang.md" ]]; then
+    if ! contains "$lang" "${profiles[@]}"; then
       printf 'verify: unknown profile: %s\n' "$lang" >&2
       exit 2
     fi
@@ -174,10 +178,10 @@ now_ms() {
 extract_verify() {
   awk '
     /^```verify[[:space:]]*$/ { in_block = 1; next }
-    in_block && /^```/ { exit }
+    in_block && /^```/ { printf "%s", commands; exit }
     in_block && /^[[:space:]]*#/ { next }
     in_block && /^[[:space:]]*$/ { next }
-    in_block { print }
+    in_block { commands = commands $0 "\n" }
   ' "$1"
 }
 
@@ -194,7 +198,14 @@ tool_missing() {
     return 0
   fi
 
+  # Only preflight an unquoted executable token; let the shell interpret
+  # assignments, quoted paths, and compound expressions instead of skipping them.
+  if [[ ! "$first" =~ ^[a-zA-Z0-9_./+-]+$ ]]; then
+    return 1
+  fi
+
   if [[ "$first" == "npx" ]]; then
+    command -v npx >/dev/null 2>&1 || return 0
     rest=${cmd#*npx}
     rest="${rest#"${rest%%[![:space:]]*}"}"
     if [[ "$rest" == --no-install* ]]; then
@@ -212,6 +223,7 @@ tool_missing() {
   fi
 
   if [[ "$first" == "cargo" ]]; then
+    command -v cargo >/dev/null 2>&1 || return 0
     rest=${cmd#*cargo}
     rest="${rest#"${rest%%[![:space:]]*}"}"
     tool=$(first_word "$rest")
@@ -274,7 +286,7 @@ run_check() {
   checks=$((checks + 1))
   : >"$out_file"
 
-  if tool_missing "$cmd"; then
+  if [[ "$label" != entry:* && "$label" != env:* ]] && tool_missing "$cmd"; then
     if ((strict)); then
       status=fail
     else
@@ -330,7 +342,12 @@ elif ((${#selected[@]} > 0)); then
   done
 else
   checks=$((checks + 1))
-  printf '%-58s | %-4s | %sms\n' "(no known stack or entry point)" "skip" "0"
+  status=skip
+  if ((strict)); then
+    status=fail
+    failures=$((failures + 1))
+  fi
+  printf '%-58s | %-4s | %sms\n' "(no known stack or entry point)" "$status" "0"
 fi
 
 if ((failures > 0)); then

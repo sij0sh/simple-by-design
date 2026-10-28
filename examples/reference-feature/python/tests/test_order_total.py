@@ -16,4 +16,7 @@ def test_total_applies_a_rounded_discount() -> None:
 
 def test_quote_returns_the_total_for_a_stored_order() -> None:
     repo = InMemoryOrderRepository((ORDER,))
-    assert quote_order(repo, "o1").total_cents == 5694
+    quote = quote_order(repo, "o1")
+    assert quote is not None
+    assert quote.order_id == "o1"
+    assert quote.total_cents == 5694

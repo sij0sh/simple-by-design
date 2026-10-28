@@ -1,5 +1,9 @@
 # Boundary config checks
 
+Historical record: obsolete policy/config; not evidence for the current redesign
+or long-term maintainability. Rerun current scenarios and checks.
+
+
 Date: 2026-10-27
 
 The TypeScript and Python starter configs were run against the eval fixture.

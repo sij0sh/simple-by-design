@@ -1,55 +1,55 @@
 # C++ profile
 
-Top rule: Make ownership, lifetime, and target dependencies explicit.
+Top rule: Make resource ownership and borrowed lifetimes explicit.
 
 ## 1 Structure
 
-- Put capability code in `src/<capability>/` and public headers in
-  `include/<capability>/`.
-- Keep internal headers in `src/<capability>/detail/`.
-- Use one build target per capability.
-- Domain targets do not link transport or persistence targets.
-- Keep tests in `tests/<capability>/`.
+- Default: group APIs by capability; no mandatory directory or target per capability.
+- Default: keep private headers private and expose small value-oriented APIs.
+- Heuristic: split libraries/targets for real consumer or build boundaries.
 
 ## 2 Preferred
 
-- Use RAII for every resource.
-- Prefer value semantics and `std::unique_ptr` for exclusive ownership.
-- Use `std::string_view` and `std::span` for non-owning parameters.
-- Use `enum class` and `constexpr` instead of macros.
-- Mark ignored results with `[[nodiscard]]`.
-- Prefer composition over inheritance.
-- Build with `-Wall -Wextra -Wpedantic` and sanitizers in tests.
+- Default: use the repository-supported stable standard; C++20 is the conservative fallback.
+- Requirement: use RAII for owned resources, including failure paths.
+- Default: use values and `std::unique_ptr` for exclusive dynamic ownership.
+- Requirement: make `std::span`/`std::string_view` borrowing lifetimes explicit;
+  views must not outlive backing storage or survive invalidating mutations.
+- Default: use `std::optional` for absence and tagged values for business outcomes.
+- Default: use exceptions for operational failures; exception-free targets use
+  explicit result/status types consistently, not unchecked success assumptions.
+- Default: synchronous calls first; concurrency only for demonstrated need.
+- Requirement: own tasks/threads, cancel or request stop, join, and observe failures.
+- Default: use `enum class`, `constexpr`, and meaningful `[[nodiscard]]` results.
 
 ## 3 Disallowed
 
-- Owning raw pointers and explicit `new` or `delete`: exception only in a
-  contained low-level adapter.
-- Mutable globals and singletons: exception only for a documented
-  process-wide service with a reset for tests.
-- `using namespace` in headers: exception none.
-- Including another module's `detail/` or private headers: exception none.
-- C-style casts: exception only at a checked ABI boundary.
-- Macros for constants, functions, or control flow: exception only for build
-  configuration.
-- Exceptions for routine control flow: exception only at a boundary that must
-  translate errors.
-- Uninitialized members: exception none.
+- Default: avoid owning raw pointers; isolate low-level allocation adapters.
+- Requirement: no dangling views, uninitialized values, or unchecked size arithmetic.
+- Default: avoid C-style casts, macro control flow, and `using namespace` in headers.
 
 ## 4 Canonical
 
-Use comparable repository code first. No bundled C++ example.
+Use repository code only when compliant with the adopted contract.
+No bundled C++ example; C++20 does not require C++23 `std::expected`.
 
 ## 5 Verification
+
+Requirement: compile with strict warnings, analyze, format, and test with supported
+sanitizers; check header/target dependencies. Tools do not prove architecture.
+Default: use repository-supported stable tools; commands below are fallbacks,
+not required dependencies. Configure warning and sanitizer flags in the build.
 
 ```verify
 cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure
-clang-tidy -p build $(git ls-files '*.cpp' '*.cc')
-clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.cc' '*.hpp' '*.h')
+clang-tidy -p build $(git ls-files '*.cpp' '*.cc' '*.cxx')
+clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.cc' '*.cxx' '*.hpp' '*.h')
 ```
 
 Boundaries: `templates/boundaries/CMakeLists.layering.txt`
 Lint config: `templates/boundaries/.clang-tidy`
-Brownfield ratchet: warning allowlist in `.clang-tidy`; remove per module.
+Requirement: baseline existing diagnostics by rule/location; reject new findings.
+Use reviewed, bounded suppressions, never blanket-skip targets or safety checks.
+Exceptions follow `standards/contract.md`.

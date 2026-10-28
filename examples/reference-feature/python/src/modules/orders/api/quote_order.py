@@ -10,11 +10,11 @@ class Quote:
     total_cents: int
 
 
-def quote_order(repo: OrderRepository, raw_id: object) -> Quote:
+def quote_order(repo: OrderRepository, raw_id: object) -> Quote | None:
     order_id = _parse_id(raw_id)
     order = repo.find_by_id(order_id)
     if order is None:
-        raise LookupError(f"unknown order: {order_id}")
+        return None
     return Quote(order_id=order.id, total_cents=total_cents(order))
 
 

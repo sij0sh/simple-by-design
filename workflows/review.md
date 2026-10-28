@@ -1,64 +1,65 @@
 # Review
 
-Run after implementation. Read `standards/contract.md` for the governing rules. Use the verification commands selected during preflight.
+Read `standards/contract.md` and the repository's adopted standards. Use checks
+selected in preflight; review the complete diff and relevant surrounding code.
 
-## Procedure
+## Questions
 
-1. Inspect the complete diff and relevant surrounding code.
-2. Compare the change with the contract and the owning module's existing patterns.
-3. Check the review questions below, especially any architectural review prompts.
-4. Run the selected verification commands. Use `scripts/verify.sh` when available; add `--strict` when missing tools should cause failure.
-5. Classify findings and fix blockers and in-scope corrections.
-6. Re-run affected verification after fixes. Report remaining notes and skipped checks.
+- **Ownership:** Can the next maintainer locate the behavior and its state? Are
+  changed owners and consumers necessary to the task?
+- **Contracts:** Are dependencies acyclic and cross-owner accesses public? Does
+  an approved architectural exception actually cover this change?
+- **Behavior:** Are inputs, mutation, failures, side effects, resource lifetimes,
+  and concurrent work traceable? Are trust-boundary guarantees established?
+- **Concepts:** Do abstractions clarify a shared concept or useful boundary? Can
+  callers understand them without learning unrelated features?
+- **Tests:** Are changed outcomes/invariants covered at a focused boundary,
+  including relevant failure paths? Do consumer tests use declared APIs?
+- **Legacy:** Are findings unchanged from the bounded baseline or newly introduced?
+  Did cleanup stay within scope? Were suppressions/baselines weakened?
+- **Standards:** Are adopted choices followed? Are consequential deviations and
+  temporary-exception revisit conditions recorded without duplicating config?
 
-If the verification entry point or required tools are unavailable, inspect the repository configuration where practical and report the gap. Do not describe an unrun check as passing.
+Size, nesting, duplication, and change surface are heuristics, not hard limits.
+Investigate them; record a defect only when its consequence is concrete.
 
-## Diff questions
+## Verification
 
-- **Change surface:** Are the affected files and modules necessary for this feature? Is ownership clear?
-- **New concepts:** Are new interfaces, layers, packages, or dependencies justified by a concrete need?
-- **Boundaries:** Do dependencies follow module contracts? Has any module's internals or owned state been accessed directly?
-- **Duplication:** Has a business rule or calculation acquired more than one authoritative implementation?
-- **Deletion:** Were obsolete paths or needless machinery removed where appropriate? Do not optimize for a deletion count.
-- **Tests:** Do tests cover changed behavior and invariants without unnecessary dependence on implementation details?
-- **Verification:** Did required tests and static checks pass? Which checks were skipped or unavailable?
+Run selected commands and review-only checks. Run `scripts/verify.sh` relative to
+this skill with the target repository as working directory; `--strict` fails on
+missing tools or undetected verification. A repository entrypoint is authoritative:
+it replaces profile fallbacks, so confirm its coverage rather than assuming it.
 
-Use change size and concept count as diagnostic signals, not fixed thresholds.
-
-## Completion criteria
-
-- All blockers and required in-scope fixes are resolved.
-- Relevant tests and required static checks pass, or any unavailable checks and their implications are explicitly reported.
-- No new architecture violations remain.
-- New dependencies, public APIs, and abstraction layers have a concrete justification.
-- Deviations from the contract are documented.
-- Skipped checks and commands not run are reported.
-
-A reported limitation is not the same as a passing check. If an unresolved issue prevents confidence in correctness, do not report the change as fully verified.
+Classify each required check as passed, introduced failure, reproduced baseline
+failure, unavailable, or not run. Non-strict skips and exit zero alone are not
+proof. Compare baseline findings by identity/scope, not only counts. Do not bless
+new failures by changing the baseline. Re-run affected checks after fixes.
 
 ## Findings
 
-Each finding should identify the affected location, explain the consequence, and state the required action.
+Give location, consequence, and action:
 
-- **Blocker:** Must be fixed before completion. Includes hard-fail violations and other issues that prevent a correct, contract-compliant change.
-- **Fix now:** A small, in-scope correction required before completion. If the correction would materially expand scope, explain the issue and agree on the scope before proceeding.
-- **Note:** A non-blocking follow-up that does not prevent completion of this change.
+- **Blocker:** new/unapproved requirement violation, correctness/safety defect,
+  introduced type/test/static-check failure, or uncertainty preventing confidence
+  in correctness. Must resolve before claiming completion.
+- **Fix now:** in-scope correction required for the agreed change. If fixing it
+  would materially expand scope, agree the scope first.
+- **Note:** non-blocking follow-up or reproduced legacy finding outside scope.
 
-## Hard fail versus review prompt
+Architectural exceptions must be explicitly approved and applicable. Existing
+baseline failures are not automatically blockers, but a legacy defect preventing
+safe implementation or trustworthy verification still needs a decision. A
+reported limitation is never a passing check.
 
-**Hard fail — blocks completion**
+## Completion
 
-- Module dependency cycles.
-- Cross-module boundary violations.
-- Type errors.
-- Failing required tests or static checks.
+- Account for every affected owner, public contract, consumer, and dependency.
+- Resolve blockers and in-scope corrections; no new unapproved violations.
+- Verify changed behavior and required static checks, distinguishing baseline
+  debt from regressions. State missing coverage and its implications.
+- Record consequential deviations and approved exceptions; preserve baseline scope.
+- Report commands/results and unrun checks. If evidence is incomplete, state what
+  remains unverified instead of describing the change as fully verified.
 
-**Review prompt — investigate and justify**
-
-- New public interfaces.
-- New dependencies.
-- New abstraction layers.
-- A growing change surface.
-- Duplicated domain logic.
-
-A review prompt is not automatically a defect. If investigation shows the change is unjustified or violates the contract, record the resulting finding at the appropriate severity. Otherwise, retain the rationale where needed.
+For skill evaluation, use `evals/tasks.md` and `evals/rubric.md`: completed growth
+and legacy changes provide evidence; scaffolding or approval stops do not.

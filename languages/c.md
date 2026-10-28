@@ -1,46 +1,44 @@
 # C profile
 
-Top rule: Keep interfaces small, ownership obvious, and undefined behavior out.
+Top rule: Make ownership, output state, and undefined-behavior prevention explicit.
 
 ## 1 Structure
 
-- Put one public header per capability in `src/<capability>/`.
-- Keep private headers in `src/<capability>/internal/`.
-- Use opaque structs for state that callers do not need to inspect.
-- Use one build target per capability.
-- Domain targets do not link transport or storage libraries.
-- Keep tests in `tests/<capability>/`.
+- Default: group APIs by capability; no mandatory directory or target per capability.
+- Default: use opaque structs for private state and `static` internal functions.
+- Heuristic: split headers/targets where a real consumer boundary warrants it.
 
 ## 2 Preferred
 
-- Follow the repository C standard. Use C17 for new code.
-- Use fixed-width types at wire and storage boundaries.
-- Return an explicit status or error code.
-- Apply `const` correctness to pointer parameters.
-- Give every allocation one documented owner.
-- Keep internal functions `static`.
-- Use checked buffer APIs and pass buffer sizes.
-- Build with warnings as errors and sanitizers in tests.
+- Default: use the repository-supported stable standard; C17 is the conservative fallback.
+- Default: return explicit status codes with out-parameters; specify output state
+  on failure, partial progress, and whether the caller must release resources.
+- Requirement: pair buffers with lengths/capacities; check bounds and termination.
+- Requirement: document allocation ownership, borrowing, and release responsibilities.
+- Requirement: check size arithmetic and conversions before allocation/indexing;
+  prevent integer overflow, use-after-free, aliasing violations, and uninitialized reads.
+- Default: use `const` borrowed inputs and fixed-width types at wire/storage edges.
+- Default: synchronous calls first; concurrency only for demonstrated need.
+- Requirement: own threads, signal shutdown, join, and observe failures.
+- Default: use one cleanup path for acquired resources; cleanup `goto` is allowed.
 
 ## 3 Disallowed
 
-- Mutable globals: exception only for documented process-wide configuration
-  with a reset for tests.
-- `strcpy`, `strcat`, `sprintf`, or `gets`: exception none. Use bounded
-  alternatives.
-- Allocations with an undocumented owner: exception none.
-- Macro-based control flow: exception only for build configuration.
-- Casting away `const`: exception only at a checked ABI boundary.
-- Including another module's `internal/` headers: exception none.
-- Undefined behavior such as signed overflow or strict-aliasing violations:
-  exception none.
-- Implicit function declarations and uninitialized values: exception none.
+- Requirement: no unbounded writes (`gets`, `strcpy`, `strcat`, `sprintf`).
+- Requirement: bounded APIs still require truncation, size, and overflow checks.
+- Default: avoid macro control flow and casts that hide ownership or constness.
 
 ## 4 Canonical
 
-Use comparable repository code first. No bundled C example.
+Use repository code only when compliant with the adopted contract.
+No bundled C example.
 
 ## 5 Verification
+
+Requirement: compile with strict warnings, analyze, format, and test with supported
+sanitizers; check header/target dependencies. Tools do not prove architecture.
+Default: use repository-supported stable tools; commands below are fallbacks,
+not required dependencies. Configure warning and sanitizer flags in the build.
 
 ```verify
 cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -50,7 +48,8 @@ clang-tidy -p build $(git ls-files '*.c')
 clang-format --dry-run --Werror $(git ls-files '*.c' '*.h')
 ```
 
-Use `cppcheck` when the build cannot produce a compile database.
 Boundaries: `templates/boundaries/CMakeLists.layering.txt`
-Lint config: `templates/boundaries/.clang-tidy`
-Brownfield ratchet: warning baseline in the build, or a cppcheck suppress file.
+Lint config: `templates/boundaries/.clang-tidy`; cppcheck is an alternative analyzer.
+Requirement: baseline existing diagnostics by rule/location; reject new findings.
+Use reviewed, bounded suppressions, never blanket-skip targets or safety checks.
+Exceptions follow `standards/contract.md`.

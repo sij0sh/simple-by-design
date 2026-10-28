@@ -1,47 +1,51 @@
 # Go profile
 
-Top rule: Prefer simple composition and small interfaces.
+Top rule: Prefer concrete structs, explicit errors, and owned goroutines.
 
 ## 1 Structure
 
-- Put binaries in `cmd/<name>/` and private code in `internal/`.
-- Group packages by capability, not by technical layer alone.
-- Keep a package cohesive. Its name should state one responsibility.
-- Export only what another package needs. Prefer `internal/` for the rest.
-- Keep domain packages free of transport and database packages.
+- Default: group cohesive packages by capability; no package required per feature.
+- Default: use `internal/` for private packages and minimal exported APIs.
+- Heuristic: use `cmd/<name>/` when multiple binaries need separate entry points.
 
 ## 2 Preferred
 
-- Use small interfaces owned by the consumer.
-- Return concrete types unless a boundary needs substitution.
-- Wrap errors with context using `%w`.
-- Give every goroutine a lifetime, cancellation path, and owner.
-- Pass `context.Context` through I/O paths.
-- Prefer plain functions and structs over framework machinery.
+- Default: use concrete structs; small interfaces belong to their consumers.
+- Default: return explicit values and errors; wrap causes with `%w`.
+- Requirement: inspect wrapped errors with `errors.Is`/`errors.As`, not strings.
+- Requirement: pass `context.Context` through cancellable I/O paths.
+- Default: synchronous calls first; start goroutines for demonstrated concurrency.
+- Requirement: every goroutine has an owner, cancellation/shutdown path, join,
+  and observed failure; cancellation alone does not wait for termination.
+- Requirement: close owned resources, normally with `defer`; handle material
+  `Close` errors, especially when they determine write success.
 
 ## 3 Disallowed
 
-- `util`, `common`, or `types` dumping grounds: exception only for a named,
-  cohesive infrastructure package.
-- Java-style interface per type: exception only for a real substitution need.
-- `panic` for routine errors: exception only for an impossible invariant at
-  startup.
-- Goroutines without cancellation or shutdown: exception only for a
-  process-lifetime worker with an explicit stop path.
-- Domain imports of HTTP, SQL, or queue packages: exception none.
+- Default: avoid interface-per-struct and unrelated `util`/`common` packages.
+- Requirement: do not use `panic` for ordinary business or operational failures.
+- Requirement: do not discard errors or leave goroutines unowned.
 
 ## 4 Canonical
 
-Use comparable repository code first. No bundled Go example in 0.1.0.
+Use repository code only when compliant with the adopted contract.
+No bundled Go example.
 
 ## 5 Verification
 
+Requirement: verify formatting, static diagnostics, behavior, and race safety;
+check configured package boundaries. Mechanical checks do not prove architecture.
+Default: use repository-supported stable tools; commands below are fallbacks,
+not required dependencies. Formatting output must produce a failing exit status.
+
 ```verify
-gofmt -l .
+gofmt -l . > /dev/null && test -z "$(gofmt -l .)"
 go vet ./...
 golangci-lint run
 go test -race ./...
 ```
 
 Boundaries: `templates/boundaries/.golangci.yml`
-Brownfield ratchet: golangci-lint `--new-from-rev`
+Requirement: brownfield baselines identify existing violations; reject new ones.
+Use `--new-from-rev` against a reviewed fixed revision, retaining full diagnostics;
+never blanket-skip legacy packages. Exceptions follow `standards/contract.md`.

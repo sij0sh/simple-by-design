@@ -6,16 +6,20 @@ export interface Quote {
   readonly totalCents: number;
 }
 
+export type QuoteResult =
+  | { readonly kind: "quoted"; readonly quote: Quote }
+  | { readonly kind: "not-found" };
+
 export function quoteOrder(
   repo: OrderRepository,
   rawId: unknown,
-): Quote {
+): QuoteResult {
   const id = parseId(rawId);
   const order = repo.findById(id);
   if (order === undefined) {
-    throw new Error(`unknown order: ${id}`);
+    return { kind: "not-found" };
   }
-  return { orderId: order.id, totalCents: totalCents(order) };
+  return { kind: "quoted", quote: { orderId: order.id, totalCents: totalCents(order) } };
 }
 
 function parseId(raw: unknown): string {
@@ -24,3 +28,7 @@ function parseId(raw: unknown): string {
   }
   return raw;
 }
+
+// Public contract types; consumers need not import domain implementation paths.
+export type { Order, OrderLine } from "../domain/order";
+export type { OrderRepository } from "../domain/order-repository";

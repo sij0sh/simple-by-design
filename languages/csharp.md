@@ -1,41 +1,43 @@
 # C# profile
 
-Top rule: Keep capability boundaries explicit and framework types out of the domain.
+Top rule: Use nullable-aware values, concrete services, and owned Tasks.
 
 ## 1 Structure
 
-- Put each capability in its own project under `src/<Capability>/`.
-- Keep transport and persistence adapters in separate projects.
-- Make intentional types public. Keep the rest `internal`.
-- Keep tests in `<Capability>.Tests`.
-- Avoid global `Controllers`, `Services`, and `Repositories` folders.
+- Default: group code by capability; no project or layer required per capability.
+- Default: keep implementation types `internal`; expose only intentional APIs.
+- Heuristic: split projects for real dependency or deployment boundaries.
 
 ## 2 Preferred
 
-- Enable nullable reference types and treat warnings as errors.
-- Use records and immutable value objects for data that should not change.
-- Use constructor injection.
-- Pass `CancellationToken` through async call paths.
-- Keep one explicit transaction boundary per operation.
-- Return small result types instead of deep DTO chains.
-- Keep framework annotations out of the domain where practical.
+- Default: enable nullable reference types and treat new warnings as errors.
+- Default: use records for values and concrete services with constructor injection.
+- Default: represent ordinary business outcomes as values, not exceptions.
+- Default: use specific exceptions for operational failures; preserve causes.
+- Requirement: use `using`/`await using` for owned disposable resources.
+- Default: synchronous logic first; use `Task` for asynchronous operations.
+- Requirement: propagate `CancellationToken`; own, cancel, and await spawned work
+  and observe failures, including during shutdown.
+- Heuristic: add interfaces only for real consumer contracts or substitution.
 
 ## 3 Disallowed
 
-- One interface per class: exception only for a real substitution or boundary.
-- Deep inheritance: exception only where a framework requires the hierarchy.
-- Field injection: exception only in framework-managed test fixtures.
-- Service locator: exception only for an existing framework entry point.
-- DTO mapping between every layer: exception only at a serialization boundary.
-- Domain dependencies on ASP.NET, EF Core, or messaging types: exception none.
-- `async void`: exception only for an event handler.
-- Suppressed nullable warnings without a narrow reason: exception none.
+- Requirement: no sync-over-async (`.Result`, `.Wait()`, blocking await bridges).
+- Default: avoid `async void` except required event handlers with observed failures.
+- Default: avoid interface-per-class, service locators, and redundant DTO chains.
+- Requirement: no unchecked null-forgiving assertions at untrusted boundaries.
 
 ## 4 Canonical
 
-Use comparable repository code first. No bundled C# example.
+Use repository code only when compliant with the adopted contract.
+No bundled C# example.
 
 ## 5 Verification
+
+Requirement: compile with nullable/analyzer checks, format, test, and check assembly
+and namespace boundaries. Mechanical checks do not prove architecture.
+Default: use repository-supported stable tools; commands below are fallbacks,
+not required dependencies.
 
 ```verify
 dotnet build --nologo -warnaserror
@@ -44,4 +46,8 @@ dotnet test --nologo
 ```
 
 Boundaries: `templates/boundaries/ArchitectureTest.cs`
-Brownfield ratchet: `WarningsNotAsErrors` baseline in `.editorconfig`
+Requirement: brownfield baselines identify existing findings; reject new ones.
+`WarningsNotAsErrors` is an MSBuild property in `.csproj`/`Directory.Build.props`,
+not `.editorconfig`; it alone is not a baseline. Pair any scoped demotion with
+finding-identity comparison; never blanket-disable nullable/analyzer checks.
+Exceptions follow `standards/contract.md`.

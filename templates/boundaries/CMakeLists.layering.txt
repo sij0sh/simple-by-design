@@ -1,6 +1,9 @@
 # CMake layering starter. Copy into the repository's top-level CMakeLists.txt.
 #
-# Keep dependency direction explicit:
+# Optional selected target layout, not mandatory layers.
+# This checks direct links only, not includes, transitive links or all cycles.
+# Declare public headers and state owners separately.
+# Example dependency direction:
 #   api         -> domain
 #   persistence -> domain
 #   domain      -> domain or small shared targets only

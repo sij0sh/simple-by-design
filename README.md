@@ -1,97 +1,117 @@
 # Simple by Design
 
-> **Complexity is easy. Simple is hard.**
+A coding-agent skill for choosing standards upfront so later changes stay easy to
+locate, understand, and verify.
 
-Simple by Design is a coding-agent skill built around a predetermined coding style. It helps developers and coding agents make consistent, deliberate codebase decisions without reconsidering the same architectural questions for every change.
+Without shared decisions, each feature can introduce another layout, abstraction,
+or error convention. This skill establishes a small universal core, selects
+idiomatic language defaults, and carries those decisions into existing code.
 
-The goal is to reduce the cognitive load required to make good decisions.
+```text
+Select standards -> approve once -> implement -> verify change
+                                          ^            |
+                                          +------------+
+Legacy adoption: baseline existing debt; introduce no new violations.
+```
 
-**Simple doesn't mean less code. It means less unnecessary complexity to understand, change, and verify.**
+## What changes
 
-## Why it exists
+| Repeated design decision | Adopted default |
+|---|---|
+| Where does behavior belong? | Its capability owner, with explicit state and contracts |
+| Should similar code become shared? | Only for a shared concept or useful boundary |
+| Which folder architecture is required? | None; structure follows actual project needs |
+| Must legacy code be rewritten? | No; bounded improvements without new violations |
+| Does a small diff prove simplicity? | No; inspect affected owners, contracts, and behavior |
 
-Every code change creates decisions:
+Local reasoning means understanding a capability without reconstructing unrelated
+features. It applies to applications, libraries, CLIs, scripts, UI, systems, and
+data work. Language profiles specialize the rules; they do not prescribe frameworks.
 
-- Where should this behavior live?
-- Should this become a new abstraction?
-- Which module should own this rule or state?
-- How should dependencies flow?
-- Should this follow an existing pattern or introduce a new one?
-- What needs to be tested?
+## Setup and first use
 
-Without shared defaults, these decisions are repeatedly made from scratch. Different developers and agents may reach different answers, creating inconsistency, unnecessary abstractions, and harder-to-maintain boundaries.
+Requires a coding agent that discovers directory-based skills. Add this checkout
+to its skill search path, or copy the whole directory to its documented skill
+location. Keep `SKILL.md`, profiles, workflows, templates, and scripts together;
+installation/discovery commands depend on the host.
 
-Simple by Design establishes preferred answers to common questions.
+Ask the agent:
 
-This doesn't eliminate judgment. It reserves judgment for decisions that actually matter.
+```text
+Use simple-by-design. Inspect this repository and propose coding standards
+for approval before implementation. Preserve existing public contracts;
+identify verification coverage and any legacy baseline.
+```
 
-## The principle: Local Reasoning
+The agent selects consequential defaults and records approved decisions in the
+repository. Existing conventions inform selection; they do not silently override
+it. Subsequent compliant changes reuse that record instead of reopening choices.
+See [preflight](workflows/preflight.md) for adoption and approval gates.
 
-Local Reasoning is the coding philosophy behind Simple by Design:
+## Rules at three strengths
 
-> A developer should be able to understand, change, and test a business capability without understanding the entire system.
+- **Requirements:** correctness, safety, ownership, explicit acyclic dependencies,
+  declared public contracts, trust-boundary validation, and behavioral verification.
+- **Defaults:** concrete functions/data, capability-first organization, explicit
+  control flow, narrowly owned mutation, and idiomatic language choices.
+- **Heuristics:** size, nesting, duplication, and change surface prompt review;
+  they are not numeric gates.
 
-It prioritizes five principles:
+Architectural exceptions need approval, scope, and rationale. Temporary exceptions
+need a revisit condition. Correctness and safety cannot be waived. Existing debt
+gets a bounded baseline, not permission to add violations or skip legacy paths.
 
-1. **Localize** — Keep related data, behavior, and decisions together.
-2. **Expose** — Make dependencies, ownership, state, and side effects visible.
-3. **Minimize** — Introduce the fewest concepts and abstractions needed to solve the problem well.
-4. **Standardize** — Solve similar problems with consistent, familiar patterns.
-5. **Verify** — Make boundaries and behavior straightforward to check.
+## Languages and verification
 
-These principles favor clear ownership, predictable dependencies, small intentional interfaces, and behavior-focused tests.
+Profiles cover TypeScript, JavaScript, Python, Go, Rust, Java, C#, C, C++, and SQL.
+They select types, outcomes/errors, ownership/resources, concurrency, boundaries,
+and verification defaults. Missing profiles fall back to universal rules with an
+explicit coverage gap.
 
-They do not prescribe arbitrary limits on lines, files, classes, or functions.
+Run from the target repository, using the actual path to this checkout:
 
-## How it works
+```bash
+/path/to/simple-by-design/scripts/verify.sh --strict
+```
 
-Simple by Design guides a coding agent through a consistent workflow.
+Resolution: `SBD_VERIFY_CMD`, `make verify`, `npm run verify`, `just verify`, then
+detected language-profile commands. Repository entrypoints replace profile checks;
+inspect their coverage. `--only=python` selects fallback profiles, not extra checks
+on top of an entrypoint. `--strict` fails on missing tools or undetected checks.
+Non-strict mode can skip checks; exit zero alone does not mean fully verified.
 
-1. **Understand.** Identify the module that owns the behavior and inspect comparable code.
-2. **Plan.** Choose the smallest appropriate change, identify affected boundaries, and select verification commands.
-3. **Check.** Evaluate architectural risks before implementation. Changes that cross defined architectural gates require a plan and approval; routine changes proceed without unnecessary ceremony.
-4. **Implement.** Follow established patterns, preserve clear ownership, and avoid unjustified complexity.
-5. **Verify.** Run relevant tests and checks, review the resulting diff, and report exceptions or skipped verification.
+Tools enforce objective rules; ownership and design still require review. SQL
+lint does not prove schema ownership. C/C++ fallback commands assume CMake;
+repository entrypoints may use other build systems.
 
-The intent is not to maximize planning or minimize every diff. It is to apply the right amount of scrutiny to each change.
+## Evidence and maintenance
 
-## What makes it different
+[Reference implementations](examples/reference-feature/) demonstrate TypeScript
+and Python contracts, consumer tests, and configured checks. Their layouts are
+illustrative. Each example declares coverage and limitations in `architecture.json`.
 
-Simple by Design treats coding style as a **decision-making policy**, not just a list of formatting preferences.
+[Evaluation tasks](evals/tasks.md) exercise greenfield implementation, second-feature
+variation, boundary changes, and bounded legacy work. Historical results predate
+this policy; they do not establish its long-term maintainability benefits.
 
-- **Defaults over repeated debate.** Common design choices have a consistent starting point.
-- **Local changes over widespread coordination.** A feature should generally remain within its owning capability.
-- **Justified abstractions over speculative ones.** New concepts must provide a concrete benefit.
-- **Consistency over cleverness.** Familiar patterns reduce the effort needed to understand and review code.
-- **Verification over trust alone.** Use automated checks wherever rules can be enforced objectively.
+From this checkout, check profile consistency and verifier behavior:
 
-The smallest diff is not always the best solution. The preferred solution is the one that solves the problem correctly while introducing the least unnecessary complexity.
+```bash
+bash scripts/check-profiles.sh
+python3 -m unittest discover -s scripts -p 'test_*.py'
+```
 
-## What's included
+## Removal
 
-- `SKILL.md` — the agent entry point and workflow routing.
-- `standards/contract.md` — the authoritative coding and architecture rules.
-- `standards/local-reasoning.md` — the rationale behind the style.
-- `languages/` — profiles for TypeScript, Python, Go, Java, JavaScript, C#, Rust, SQL, C, and C++.
-- `workflows/preflight.md` — checks before implementation and architectural approval gates.
-- `workflows/review.md` — post-change review and completion criteria.
-- `scripts/verify.sh` — the verification entry point.
-- `scripts/check-profiles.sh` — checks that profiles and verify.sh stay in sync.
+Remove the skill search-path entry or copied skill directory from your agent.
+Repository standards records, configuration, and code remain; remove their links
+or revise those decisions separately if no longer wanted.
 
-The skill description is intended to be the entry point, rather than requiring a separate repository-level `AGENTS.md` or `CLAUDE.md`. Make sure your coding agent supports and discovers skills in the environment where you use it.
+## Reference
 
-When a language profile is unavailable, the agent applies the universal standards and reports the limitation.
-
-SQL coverage focuses on schema ownership and migrations. SQLFluff checks style; ownership remains a review rule. C and C++ profile commands assume a CMake build or a repository entry point.
-
-## Guidance is not enforcement
-
-Agent instructions help guide decisions, but instructions alone cannot guarantee architectural compliance.
-
-Use static analysis, tests, dependency-boundary checks, and CI where appropriate to enforce objectively verifiable rules. Keep subjective design judgments as review questions rather than pretending every preference can be reduced to a lint rule.
-
-## The intended outcome
-
-A codebase where developers can make sound changes with less context, fewer unnecessary decisions, and less risk of unintended consequences.
-
-**The goal isn't to make every decision for the developer. It's to stop making them repeatedly decide things that should already have a clear answer.**
+- [Agent entrypoint](SKILL.md)
+- [Authoritative contract](standards/contract.md) and [rationale](standards/local-reasoning.md)
+- [Language profiles](languages/)
+- [Review and completion](workflows/review.md)
+- [Boundary templates](templates/boundaries/)
+- [MIT license](LICENSE)

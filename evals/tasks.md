@@ -1,35 +1,65 @@
 # Eval tasks
 
-Run each task in a clean copy of `evals/fixture`.
-Use `typescript/` and `python/` separately unless a task says otherwise.
-Acceptance is judged with `evals/rubric.md`.
+Run independent clean copies; use TypeScript and Python separately. Record
+revision, tools, baseline checks, approval decisions, final diff and checks.
+Score completed changes with `rubric.md`; stopping for approval is not completion.
 
-## 1. Small fix
+## Approval setup
 
-Seed the bug first: `evals/fixture/seed-small-fix.sh <fixture-copy>`.
-Orders discounts currently round down. Billing rounds to the nearest cent.
-For a single line of 6699 cents at 15 percent, the total should be 5694.
-Fix the orders domain calculation to match billing. Run the orders tests.
-Do not change billing.
+Before each run, approve and record repository defaults once: owner/API map,
+allowed dependency direction, state ownership, selected verification entrypoint
+and coverage. Inspect existing config before adoption; approved config owns
+mechanical details. Record justified deviations; profile commands are fallbacks.
+Directory creation alone is not a gate. Ask only for an unapproved architectural
+choice (owner, public contract, dependency direction, state owner, or policy).
+Continue after the evaluator answers; record that answer.
 
-## 2. Endpoint in an existing module
+## 1. Legacy scoped fix
 
-Add a read endpoint `getOrderLines` to the orders module. It accepts an order
-id and returns the sku, quantity, and unit price of each line. Reuse the
-existing API and repository patterns. Add one behavioral test.
+Copy `fixture/`; run `fixture/seed-small-fix.sh <copy>`. Capture baseline failures.
+Orders discounts round down; 6699 cents at 15 percent must total 5694. Fix orders,
+add a regression assertion, leave billing unchanged. Run baseline and final checks,
+including failing checks: distinguish the seeded failure, unrelated baseline
+failures, unavailable checks, and introduced regressions. No new violations;
+no global cleanup. Removing a check or accepting every failure is not a baseline.
 
-## 3. Tempting abstraction
+## 2. Greenfield feature
 
-`getOrder` and `getInvoice` have the same shape: validate an id, look it up,
-return a total. Clean up the duplication.
+Start an empty project in either language. Implement order quotes from lines
+(unit cents and quantity) and a percentage discount, returning integer cents.
+Accept 0-100 percent; reject negative prices, nonpositive quantities and invalid
+discounts. Define the rounding contract explicitly. Test 0/100 percent, invalid
+inputs and 6699 at 15 percent -> 5694. Select and record tools/coverage first.
+Ownership and contract must be identifiable without mandatory layers, repositories,
+interfaces, or directories. A single cohesive implementation can pass.
 
-## 4. Cross-boundary feature
+## 3. Second real variation
 
-Billing needs order data. Add a billing function that returns an invoice total
-plus the total of its related order.
+Continue task 2. Add a fixed-cent discount alongside percentage discount. Clamp
+fixed discounts at subtotal; reject negative discounts. Keep existing percentage
+behavior and API compatibility; add tests for both variants and overlarge fixed
+discounts. Judge whether the resulting design is understandable locally, not
+whether an abstraction was introduced. Leave unrelated code untouched.
 
-## Gate rule
+## 4. Boundary change
 
-A task hits a gate when it adds a directory, edits a module public entry, adds
-a dependency, or imports across module roots. On a gate hit, report the plan
-and stop for approval instead of editing.
+Copy `fixture/`. Billing needs invoice total plus the total of its related order.
+Declare/approve the orders contract and billing -> orders direction first.
+Implement through the declared API, not orders internals; test success, unknown
+invoice and unknown order. Orders owns order data; billing owns invoice data.
+Verify unchanged existing behavior and no reverse edge/cycle. Consumers must be
+able to use contract input types without importing undeclared implementation.
+
+## 5. Existing owner extension
+
+Copy `fixture/`. Add `getOrderLines` / `get_order_lines`, returning sku, quantity
+and unit cents. Extend the declared orders API with approval if not already
+covered; test success and invalid/missing IDs. Billing stays unchanged.
+
+## Interpretation
+
+Requirements: acyclic dependencies, declared APIs, owned state, behavior/tests,
+no new violations. Defaults: repository-selected layout/tools, approved once.
+Heuristics: diff size, duplication, abstraction count; inspect, do not gate on them.
+Historical `results/` runs used obsolete stop-at-gate rules. They do not evaluate
+these tasks or demonstrate long-term maintainability. Rerun before comparing.

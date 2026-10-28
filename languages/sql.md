@@ -1,48 +1,54 @@
 # SQL profile
 
-Top rule: One owner per table and business rule; cross-capability access uses a declared interface.
+Top rule: Enforce data invariants and make table ownership explicit.
 
 ## 1 Structure
 
-- Group migrations by capability under `migrations/<capability>/`.
-- Use a schema or naming convention that names the owning capability.
-- Keep views, functions, and procedures with the capability they serve.
-- Order migrations forward-only and keep each migration focused.
-- Do not create a shared `common` schema for business logic.
+- Requirement: identify one owning capability for each table and its write API.
+- Default: group migrations and queries by capability without requiring a schema
+  or directory per capability; schema names alone do not enforce ownership.
+- Default: keep views/functions with their owner and migrations ordered and focused.
 
 ## 2 Preferred
 
-- List columns explicitly in production queries.
-- Declare primary, foreign, not-null, unique, and check constraints.
-- Make migrations transactional and idempotent where the tool allows.
-- Give every index a purpose tied to a query or constraint.
-- Document a backup or rollback plan for destructive changes.
-- Keep names consistent with repository conventions.
+- Requirement: enforce applicable primary/foreign keys, uniqueness, not-null,
+  and check constraints; application validation does not replace database invariants.
+- Requirement: parameterize data values; allowlist identifiers that cannot be bound.
+- Default: list query columns explicitly and qualify cross-schema object references.
+- Requirement: use exact decimal or integer minor units for money, with defined
+  currency/scale/rounding; define NULL meaning and timestamp/time-zone semantics.
+- Requirement: define transaction scope, isolation, and conflict/retry semantics
+  for multi-step invariants; keep external side effects out of retried transactions.
+- Default: evolve deployed schemas with expand-contract migrations; stage backfills
+  and compatibility windows before removing old columns or constraints.
+- Requirement: plan recovery for destructive migrations; respect engine DDL semantics.
+- Heuristic: add indexes for demonstrated query/constraint needs, not every column.
 
 ## 3 Disallowed
 
-- `SELECT *` in production queries: exception only for an explicit diagnostic
-  query.
-- Cross-capability writes to base tables: exception none. Use the owner's
-  declared interface.
-- Business logic in triggers: exception only for audit with review.
-- Unqualified objects across schemas: exception none.
-- Destructive migrations without approval: exception none.
-- Implicit casts that change comparison semantics: exception none.
-- Nullable columns with ambiguous meaning: exception none.
+- Requirement: no cross-owner base-table writes bypassing the declared interface.
+- Requirement: no implicit casts or ambiguous NULL/time semantics changing correctness.
+- Default: avoid trigger-hidden business workflows and destructive one-step rollouts.
 
 ## 4 Canonical
 
-Use comparable repository migrations first. No bundled SQL example.
+Use repository migrations only when compliant with the adopted contract.
+No bundled SQL example; match the repository engine and supported stable version.
 
 ## 5 Verification
+
+Requirement: lint the configured dialect, validate migrations, and integration-test
+constraints, transactions, and old/new application compatibility on the target engine.
+Default: repository entry points supply database checks; the command below is a
+lint fallback, not a required dependency or complete verification.
 
 ```verify
 sqlfluff lint .
 ```
 
-Database-dependent checks (migration validate, integration tests) belong to
-the repository entry point.
-Boundaries: none enforced by SQLFluff. Ownership is a review rule.
 Lint config: `templates/boundaries/.sqlfluff`
-Brownfield ratchet: exclude legacy paths in `.sqlfluff`
+Requirement: review ownership/grants separately; SQLFluff does not prove architecture.
+Requirement: baseline existing findings by rule/location; reject new findings.
+Use reviewed, bounded suppressions, never exclude entire legacy migration paths.
+Test concurrent transaction conflicts when relevant; migration runners own work,
+cancellation, completion, and failure reporting. Exceptions follow `standards/contract.md`.

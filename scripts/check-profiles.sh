@@ -45,23 +45,13 @@ fi
 for file in "$languages"/*.md; do
   name=${file##*/}
   name=${name%.md}
-  lines=$(wc -l <"$file" | tr -d ' ')
-  if ((lines < 40 || lines > 60)); then
-    fail "$name: profile is $lines lines, expected 40-60"
-  fi
-  if ! grep -q '^Top rule: ' "$file"; then
-    fail "$name: missing top rule"
-  fi
-  for section in "1 Structure" "2 Preferred" "3 Disallowed" "4 Canonical" "5 Verification"; do
-    if ! grep -qx "## $section" "$file"; then
-      fail "$name: missing section $section"
-    fi
-  done
+  # Check executable structure, not prose length or heading vocabulary.
   if ! awk '
     /^```verify[[:space:]]*$/ { in_block = 1; next }
-    in_block && /^```/ { exit }
+    in_block && /^```/ { closed = 1; exit }
+    in_block && /^[[:space:]]*#/ { next }
     in_block && NF { found = 1 }
-    END { exit found ? 0 : 1 }
+    END { exit (found && closed) ? 0 : 1 }
   ' "$file"; then
     fail "$name: missing or empty verify block"
   fi

@@ -1,44 +1,50 @@
 # Java profile
 
-Top rule: Minimize unnecessary abstraction layers.
+Top rule: Use concrete services and explicit value contracts.
 
 ## 1 Structure
 
-- Package by capability: `orders`, `billing`, `users`.
-- Keep implementation classes package-private. Export intentional APIs.
-- Keep persistence and transport adapters out of domain packages.
-- Put tests in the same package as the code they exercise.
-- Avoid global `controllers`, `services`, and `repositories` packages.
+- Default: organize by capability, not global controller/service/repository layers.
+- Default: keep implementation classes and constructors package-private where
+  callers need no access; expose intentional APIs and invariant-safe construction.
+- Heuristic: add packages/modules only for a real boundary, not every capability.
 
 ## 2 Preferred
 
-- Use records and immutable value objects for data that should not change.
-- Use constructor injection.
-- Define transaction boundaries in one explicit place.
-- Prefer concrete services until substitution is real.
-- Keep domain rules free of framework annotations where practical.
-- Return small result types instead of deep DTO chains.
+- Default: use records for values and concrete services with constructor injection.
+- Requirement: declare and check nullability using the repository's supported scheme.
+- Default: represent ordinary business outcomes as values, not exceptions.
+- Default: use specific exceptions for operational failures; preserve causes.
+- Requirement: use try-with-resources for owned closeable resources.
+- Default: synchronous calls first; concurrency only for demonstrated need.
+- Requirement: own concurrent work, cancel/shut down and join it, and observe
+  failures; use supported structured APIs or explicit executor/future lifecycles.
+- Heuristic: add interfaces only for real consumer contracts or substitution.
 
 ## 3 Disallowed
 
-- One interface per class: exception only for a real substitution or boundary.
-- Deep inheritance: exception only where a framework requires the hierarchy.
-- Excess DTO mapping between layers: exception only at a serialization
-  boundary that needs a different shape.
-- Global layer packages: exception none.
-- Field injection: exception only in framework-managed test fixtures.
-- Domain dependencies on web, ORM, or messaging APIs: exception none.
+- Default: avoid interface-per-class, field injection, and redundant DTO chains.
+- Requirement: do not hide nullability violations or swallow broad exceptions.
+- Default: keep framework annotations out of business values where practical.
 
 ## 4 Canonical
 
-Use comparable repository code first. No bundled Java example in 0.1.0.
+Use repository code only when compliant with the adopted contract.
+No bundled Java example.
 
 ## 5 Verification
+
+Requirement: compile with diagnostics/nullability checks, test behavior, and check
+package dependencies. Mechanical checks do not prove architecture.
+Default: use repository-supported stable JDK/build tools; commands below are
+fallbacks, not required dependencies. Do not require preview concurrency APIs.
 
 ```verify
 ./mvnw -q verify
 ```
 
-Gradle repositories: replace with `./gradlew check`.
+Gradle repositories: replace with `./gradlew check` and equivalent configured checks.
 Boundaries: `templates/boundaries/ArchitectureTest.java`
-Brownfield ratchet: ArchUnit `FreezingArchRule`
+Requirement: brownfield baselines identify existing violations; reject new ones.
+Use ArchUnit `FreezingArchRule` with reviewed frozen entries; do not automatically
+accept new entries or blanket-skip packages. Exceptions follow `standards/contract.md`.

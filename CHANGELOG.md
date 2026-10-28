@@ -117,3 +117,7 @@ First release.
 - Add all ten language profiles: TypeScript, Python, Go, Java, JavaScript,
   C#, Rust, SQL, C, and C++.
 - Add profile consistency check and document profile coverage and limits.
+
+## 0.1.9 - 2026-10-28
+
+- Adopt upfront coding standards and bounded legacy rules; align language profiles, examples, boundary templates, evaluations, and verifier regression checks.

@@ -1,3 +1,5 @@
+// Example policy: each capability owns its state; api/ is its declared public surface.
+// Adapt paths to selected ownership; no layer names are required.
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
@@ -12,11 +14,11 @@ module.exports = {
       name: "no-cross-module-internals",
       severity: "error",
       comment:
-        "Constraint 2: import another module through api/ or its entry, not domain/ or persistence/.",
+        "Consumers use the declared api/ directory; owner-local imports stay legal.",
       // Module root: src/modules/<capability>. Adjust this regex to your layout.
       from: { path: "^src/modules/([^/]+)/" },
       to: {
-        path: "^src/modules/[^/]+/(domain|persistence)/",
+        path: "^src/modules/[^/]+/(?!api/)",
         pathNot: "^src/modules/$1/",
       },
     },
@@ -29,6 +31,8 @@ module.exports = {
     },
   ],
   options: {
+    tsPreCompilationDeps: true,
+    tsConfig: { fileName: "tsconfig.json" },
     doNotFollow: { path: "node_modules" },
     exclude: { path: "(^|/)(node_modules|dist|build|coverage)/" },
   },

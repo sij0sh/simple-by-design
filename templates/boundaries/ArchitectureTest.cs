@@ -1,3 +1,6 @@
+// Example selected layout only; adapt to declared owners and public API.
+// Owner-local tests may inspect internals. Rules below are partial coverage,
+// not proof of every API boundary, cycle or state owner.
 // Copy into a test project that references NetArchTest.Rules and xUnit.
 // Replace the assembly names and namespaces with the repository's own.
 

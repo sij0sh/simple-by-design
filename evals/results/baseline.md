@@ -1,5 +1,9 @@
 # Baseline eval
 
+Historical record: obsolete policy/config; not evidence for the current redesign
+or long-term maintainability. Rerun current scenarios and checks.
+
+
 Date: 2026-10-27
 Condition: no skill loaded.
 Fixture: `evals/fixture/` clean, except task 1 uses

@@ -20,8 +20,8 @@ describe("quote order", () => {
   it("returns the total for a stored order", () => {
     const repo = new InMemoryOrderRepository([order]);
     expect(quoteOrder(repo, "o1")).toEqual({
-      orderId: "o1",
-      totalCents: 5694,
+      kind: "quoted",
+      quote: { orderId: "o1", totalCents: 5694 },
     });
   });
 });

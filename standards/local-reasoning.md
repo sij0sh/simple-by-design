@@ -1,68 +1,43 @@
-# Local Reasoning — Coding Style v1.1
+# Local reasoning
 
-This file explains why the style exists. `standards/contract.md` is authoritative for code rules. `workflows/preflight.md` owns pre-edit checks and approval gates; `workflows/review.md` owns post-change review.
+`standards/contract.md` owns code rules. This file explains tradeoffs, not an
+additional checklist. `workflows/preflight.md` owns adoption and approval;
+`workflows/review.md` owns completion. Profiles only specialize universal rules.
 
-Language profiles may add language-specific rules or specialize universal rules. They should not repeat rules that already apply unchanged.
+## The change test
 
-## Governing idea
+A maintainer should quickly answer:
 
-Optimize for local reasoning. A developer should be able to understand, change, and test a business capability without understanding the entire system.
+1. Where does this behavior belong?
+2. Which inputs, state changes, dependencies, and failures affect it?
+3. Which contracts and consumers could this change affect?
+4. What focused verification demonstrates the intended behavior?
 
-## Principles
+If answering requires reconstructing unrelated features, investigate ownership,
+implicit dependencies, or an abstraction that hides more than it explains.
 
-1. **Localize.** Related data, behavior, and decisions belong together.
-2. **Expose.** Visible dependencies, state, ownership, and side effects make behavior easier to trace.
-3. **Minimize.** Every additional concept costs attention; introduce one only when its benefit justifies that cost.
-4. **Standardize.** Familiar patterns reduce the effort required to understand and review code.
-5. **Verify.** Clear boundaries and observable behavior make correctness cheaper to check.
+## Tradeoffs
 
-## Design implications
+- **Locality versus line count:** modest duplication can keep independent
+  capabilities independent. Duplicating an authoritative business rule instead
+  creates competing owners; keep that rule behind its owner's contract.
+- **Structure versus ceremony:** a script may need a few functions; a library
+  may need public symbols and private implementation; an application may need
+  capability modules. Folders and projects are tools, not proof of separation.
+- **Isolation versus indirection:** isolate I/O to test decisions directly.
+  Add an interface only when it makes a real boundary or substitution clearer.
+- **Consistency versus legacy:** selected conventions reduce repeated decisions.
+  Baseline existing violations without extending them or forcing a rewrite.
+- **Small diff versus clear change:** count affected owners and contracts, not
+  just files. Legitimately cross-cutting changes can be large and understandable.
 
-1. **Capability ownership.** Organize code around cohesive business capabilities so developers can find where behavior belongs.
-2. **Predictable dependencies.** One-way dependency flow limits how far changes can propagate.
-3. **Explicit behavior.** Visible control flow and dependencies reduce the need to reconstruct hidden state.
-4. **Locality of change.** A feature that routinely requires unrelated modules to change may indicate unclear ownership or excessive coupling.
-5. **Single source of truth.** One authoritative owner for each business rule, calculation, and piece of state prevents divergent behavior.
-6. **Justified abstractions.** Interfaces, factories, base classes, and extra layers add concepts. Reuse, genuine substitution, or meaningful isolation of complexity can justify them; abstraction alone is not a benefit.
-7. **Consistency.** Familiar patterns make code easier to compare and defects easier to notice.
-8. **Separated concerns.** Business decisions should remain understandable without needing to understand transport, storage, or framework details.
-9. **Behavior-focused tests.** Tests of observable outcomes and invariants give confidence when implementation details change.
-10. **Deletion.** Removing obsolete paths and machinery reduces the number of concepts and behaviors developers must account for.
+## Growth
 
-These implications explain the contract; they are not a separate approval policy or an additional checklist.
+Start with the smallest structure expressing today's ownership. As capabilities
+vary, preserve independent changes before extracting shared machinery. Create a
+new module when it clarifies an actual boundary; declare its contract and checks
+at that point. Do not prebuild a speculative architecture.
 
-## Review lenses
-
-Use these as qualitative signals, not quotas or numeric thresholds.
-
-- **Change surface:** How many modules and files must change for the feature?
-- **Cognitive load:** How much of the system must a developer understand to make a safe change?
-- **Coupling:** How many other modules could be affected by one change?
-- **Discoverability:** How quickly can a developer find the owner of a behavior?
-- **Predictability:** Does the code behave as its structure and names suggest?
-- **Deletion cost:** Can obsolete functionality be removed without tracing unnecessary dependencies?
-
-A large change surface is not automatically wrong. Assess whether the affected modules have legitimate ownership and dependency relationships.
-
-## Illustrative capability layout
-
-```text
-src/
-  modules/
-    <capability>/
-      api/
-      domain/
-      persistence/
-  shared/
-    logging/
-    database/
-    config/
-```
-
-This is an example, not a required directory structure. Create folders and layers only when the code needs them.
-
-`shared/` is for genuinely cross-cutting infrastructure, not a default home for business logic without a clear owner. A capability should own its business rules and expose a small, intentional interface where cross-capability access is needed.
-
-## Closing
-
-Simple means cheap to understand and change, not short.
+Useful review signals: discoverability, dependency traceability, affected-owner
+count, ease of focused tests, and ease of deleting obsolete behavior. Treat them
+as evidence to explain, not quotas to optimize.

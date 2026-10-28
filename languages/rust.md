@@ -1,42 +1,41 @@
 # Rust profile
 
-Top rule: Use ownership and types to keep invalid states local.
+Top rule: Express state and ownership with types before adding abstractions.
 
 ## 1 Structure
 
-- Use a workspace with `crates/<capability>/`.
-- Each crate exposes a small `lib.rs`. Keep the rest `pub(crate)`.
-- Keep domain crates free of HTTP, database, and queue crates.
-- Keep tests beside the module or under `tests/` for public behavior.
+- Default: group modules by capability; no crate or workspace required per feature.
+- Default: expose small APIs; private items first, `pub(crate)` only when needed.
+- Heuristic: split crates for real dependency, build, or distribution boundaries.
 
 ## 2 Preferred
 
-- Model states with enums and make invalid combinations unrepresentable.
-- Return `Result` with contextual errors.
-- Define small traits at the consumer when substitution is real.
-- Make ownership explicit. Prefer borrowing over cloning.
-- Use `#[must_use]` where ignoring a result is a bug.
-- Prefer plain functions and modules over trait hierarchies.
-- Keep `unsafe` blocks small, justified, and tested.
+- Default: use structs and enums for data, states, and business outcomes.
+- Default: use typed `Result` for failure and `Option` for meaningful absence.
+- Default: borrow before cloning; document ownership transfers at APIs.
+- Heuristic: use traits for real contracts, not one trait per struct.
+- Default: use `#[must_use]` where ignoring a value loses required work.
+- Default: synchronous logic first; async only for an actual concurrency need.
+- Requirement: own spawned tasks, cancel/shut down and join them, and observe
+  failures; dropping a handle is not evidence of task termination.
+- Requirement: keep `unsafe` small with documented safety invariants and tests.
 
 ## 3 Disallowed
 
-- `unwrap` or `expect` on fallible library paths: exception only for a proven
-  invariant with a message.
-- `unsafe` without a safety comment: exception none.
-- Mutable statics and hidden interior mutability: exception only for a
-  documented process-wide cache with a reset for tests.
-- Trait-per-struct without a substitution need: exception none.
-- Domain dependencies on transport or storage crates: exception none.
-- `clone` used to avoid ownership design: exception only at a boundary where
-  sharing is real.
-- Wildcard dependencies: exception only for internal workspace crates.
+- Requirement: no `unwrap`/`expect` on unproven fallible production paths.
+- Default: avoid mutable statics and cloning to evade ownership design.
+- Requirement: no undocumented unsafe invariants or unobserved task failures.
 
 ## 4 Canonical
 
-Use comparable repository code first. No bundled Rust example.
+Use repository code only when compliant with the adopted contract.
+No bundled Rust example.
 
 ## 5 Verification
+
+Requirement: format, lint, test, and check dependency policy and module boundaries.
+Default: use repository-supported stable tools; commands below are fallbacks,
+not required dependencies. Mechanical checks do not prove architecture.
 
 ```verify
 cargo fmt --all -- --check
@@ -45,8 +44,9 @@ cargo test --all
 cargo deny check
 ```
 
-Boundaries: none enforced by Cargo. Crate cycles fail by construction;
-workspace layering is a review rule.
-Dependency policy: `templates/boundaries/deny.toml`
-Brownfield ratchet: none built in. Run Clippy without `-D warnings` and track
-the count per crate.
+Dependency policy: `templates/boundaries/deny.toml`; Cargo does not enforce
+capability ownership or workspace layering. Review these separately.
+Requirement: brownfield baselines identify existing findings by rule and location;
+reject new findings, not merely count increases. Use scoped lint allowances
+with owners/revisit conditions, never blanket-disable warnings or legacy crates.
+Exceptions follow `standards/contract.md`.

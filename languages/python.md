@@ -1,41 +1,41 @@
 # Python profile
 
-Top rule: Make dependencies and contracts explicit.
+Top rule: Make function contracts and resource lifetimes explicit.
 
 ## 1 Structure
 
-- Use `pyproject.toml` and a `src/` layout for packages.
-- Keep code in `src/modules/<capability>/{api,domain,persistence}`.
-- A module's `__init__.py` is its public entry. Keep internals private.
-- Tests stay beside the feature or under `tests/`.
-- Keep domain code free of framework imports.
+- Default: group modules by capability; no mandatory package or layer per feature.
+- Default: keep module APIs small; use private names for implementation details.
+- Heuristic: use a `src/` package layout when packaging/import isolation warrants it.
 
 ## 2 Preferred
 
-- Type public APIs, business logic, and integration boundaries.
-- Use dataclasses for value objects.
-- Pass collaborators as arguments or constructor parameters.
-- Use small `Protocol` types at boundaries where substitution is real.
-- Prefer plain functions and modules over class hierarchies.
-- Keep import time cheap and side-effect free.
+- Default: type maintained functions, including business logic and boundaries.
+- Default: use dataclasses for data; frozen dataclasses for value objects.
+- Default: represent ordinary business outcomes as values, not exceptions.
+- Default: raise specific exceptions for operational failures; preserve causes.
+- Requirement: use context managers for resource acquisition and release.
+- Default: use functions and concrete collaborators; Protocols for real contracts.
+- Default: synchronous code first; async only for an actual concurrency need.
+- Requirement: own tasks/threads, join them, provide cancellation or cooperative
+  shutdown, and observe failures; use structured task groups where supported.
 
 ## 3 Disallowed
 
-- Import-time I/O or mutable initialization: exception only in an explicit
-  entry-point bootstrap module.
-- Mutable module globals: exception only for a documented process-wide cache
-  with a reset for tests.
-- Metaclasses and behavior-hiding decorators: exception only for an existing
-  framework integration that cannot be isolated.
-- Pervasive `Any`: exception only at an untyped third-party edge, then narrow.
-- Domain imports of web, ORM, or queue frameworks: exception none.
+- Default: avoid import-time I/O, mutable globals, and behavior-hiding decorators.
+- Requirement: narrow untyped third-party data before domain use.
+- Requirement: do not swallow broad exceptions or abandon background tasks.
 
 ## 4 Canonical
 
-Use comparable repository code first. Fallback:
-`examples/reference-feature/python/`.
+Use repository code only when compliant with the adopted contract.
+Fallback: `examples/reference-feature/python/`; adapt, do not copy its layout.
 
 ## 5 Verification
+
+Requirement: type-check, lint, test behavior, and check configured import boundaries.
+Default: use repository-supported stable tools; commands below are fallbacks,
+not required dependencies. Mechanical checks do not prove architecture.
 
 ```verify
 ruff check .
@@ -45,4 +45,7 @@ pytest -q
 ```
 
 Boundaries: `templates/boundaries/.importlinter`
-Brownfield ratchet: import-linter `ignore_imports`
+Requirement: brownfield baselines identify existing violations; reject new ones.
+Use `ignore_imports` only for reviewed, bounded existing edges; track type/lint
+findings by identity, not just count. Never blanket-skip legacy packages.
+Exceptions follow `standards/contract.md`.
