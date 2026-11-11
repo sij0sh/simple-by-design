@@ -1,5 +1,5 @@
 ---
-name: simple-by-design-adaptive
+name: simple-by-design
 description: Design a solution through focused CLI-routed prompts.
 disable-model-invocation: true
 ---

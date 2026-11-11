@@ -90,7 +90,7 @@ class CliTests(unittest.TestCase):
 
     def test_skill_entry_and_ordinary_static_instruction_budgets(self):
         skill = (ROOT / 'SKILL.md').read_text()
-        self.assertTrue(skill.startswith('---\nname: simple-by-design-adaptive\n'))
+        self.assertTrue(skill.startswith('---\nname: simple-by-design\n'))
         self.assertIn('disable-model-invocation: true', skill)
         body = skill.split('---', 2)[2]
         self.assertLessEqual(len(body.split()), 100)

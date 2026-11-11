@@ -2,7 +2,7 @@
 
 Status: current
 
-`simple-by-design-adaptive` is a local CLI that routes one agent through a fixed design sequence: draft → resolve one gap → review, then publish. It is design-only; there is no ledger, agent-selected workflow or implementation step.
+`simple-by-design` is a local CLI that routes one agent through a fixed design sequence: draft → resolve one gap → review, then publish. It is design-only; there is no ledger, agent-selected workflow or implementation step.
 
 ```mermaid
 flowchart LR

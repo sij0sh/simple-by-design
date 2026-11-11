@@ -1,4 +1,4 @@
-# simple-by-design-adaptive
+# simple-by-design
 
 **Turns design into a falsifiable decision record, so coding agents settle consequential choices before implementation.**
 
@@ -27,7 +27,7 @@ Asked to design first, a coding agent can write a plausible plan and call it com
 Place this directory in your harness skill folder. Invoke it explicitly. From the task project, Python 3.11+ on POSIX, no dependencies:
 
 ```bash
-S=/absolute/path/to/simple-by-design-adaptive
+S=/absolute/path/to/simple-by-design
 python3 "$S/scripts/sbd.py" --request 'Design a greeting command; report only.'
 ```
 
