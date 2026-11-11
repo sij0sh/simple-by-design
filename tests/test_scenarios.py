@@ -4,6 +4,7 @@ import tempfile
 import unittest
 
 from support import Store, DispatchError, PASS
+from engine.prompts import summary
 
 
 def candidate(summary, criteria=('Checkable outcome.',), decisions=()):
@@ -33,8 +34,7 @@ class ScenarioFixtures(unittest.TestCase):
             for result in results:
                 state = store.submit(state['ticket'], result)
             if state['phase'] == 'complete':
-                path = f".agents/artifacts/solution-design-{state['ticket']}.md"
-                state['text'] = (store.root / path).read_text()
+                state['text'] = summary(state)
             return state
 
     def test_trivial_task_without_decisions_passes_with_no_resolve(self):
@@ -97,11 +97,11 @@ class ScenarioFixtures(unittest.TestCase):
             {'status': 'resolved', 'answer': 'deferred: requester decides after trial.', 'basis': 'Requester deferred.'},
             candidate(conditional, ['Operator measurements gate D1; no paging before requester selects threshold.'], [diagnostic]),
             PASS)
-        self.assertNotIn('resolutions', state)
         self.assertIn('(fact) Is packet loss observed?', state['text'])
         self.assertIn('(intent) Alert threshold?', state['text'])
         self.assertIn('deferred: requester decides', state['text'])
         self.assertIn('Conditional:', state['text'])
+        self.assertEqual(len(state['resolutions']), 2)
 
     def test_engineering_means_and_delegated_tradeoff_need_no_approval_route(self):
         for request in ('Design a local Python report generator; follow project conventions.',
@@ -129,7 +129,7 @@ class ScenarioFixtures(unittest.TestCase):
                     {'status': 'resolved', 'answer': answer, 'basis': basis},
                     candidate('Prototype only; timeout basis remains provisional when unobserved.',
                               ['Test timing locally before any production commitment.'], [choice]), PASS)
-                self.assertNotIn('resolutions', state)
+                self.assertIn('resolutions', state)
                 self.assertIn(basis, state['text'])
                 self.assertIn('(fact) What timeout?', state['text'])
 
@@ -174,7 +174,7 @@ class ScenarioFixtures(unittest.TestCase):
             candidate('When request is report-only, return a report without modifying the target.',
                       ['For a report-only request, target bytes remain unchanged.']), PASS)
         self.assertEqual(state['phase'], 'complete')
-        self.assertNotIn('candidate', state)
+        self.assertIn('candidate', state)
         self.assertIn('None consequential.', state['text'])
         self.assertIn('target bytes remain unchanged', state['text'])
 
@@ -191,7 +191,7 @@ class ScenarioFixtures(unittest.TestCase):
             weak, gap('defeater', 'An unmet prerequisite hidden in revisit lets a ready summary mislead.'),
             fixed, PASS)
         self.assertEqual(state['phase'], 'complete')
-        self.assertNotIn('candidate', state)
+        self.assertIn('candidate', state)
         self.assertIn(gate, state['text'])
         self.assertIn('no destructive step before it', state['text'])
 

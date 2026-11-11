@@ -1,4 +1,4 @@
-"""POSIX checkpoint owner: safe paths, writer mutex and atomic publication.
+"""POSIX checkpoint owner: safe paths, writer mutex and atomic writes.
 
 The mutex protects CLI transactions only, not the agent's other tools.
 """
@@ -144,48 +144,6 @@ class Store:
         router.validate(document)
         self._atomic(self.path, json.dumps(document, ensure_ascii=False, allow_nan=False, indent=2) + "\n")
 
-    @staticmethod
-    def _artifact(document):
-        candidate, review = document["candidate"], document["review"]
-        lines = ["# Solution design", "", "## Request", "", document["request"], "",
-                 "## Summary", "", candidate["summary"], "", "## Criteria", ""]
-        lines += [f"- {item}" for item in candidate["criteria"]]
-        lines += ["", "## Decisions", ""]
-        for decision in candidate["decisions"]:
-            lines += [f"### {decision['id']}", ""]
-            lines += [f"- **{key.capitalize()}:** {decision[key]}"
-                      for key in ("choice", "basis", "alternative", "tradeoff", "revisit")]
-            lines.append("")
-        if not candidate["decisions"]:
-            lines += ["None consequential.", ""]
-        if document.get("resolutions"):
-            lines += ["## Resolutions", ""]
-            lines += [f"- ({item['type']}) {item['question']} → {item['answer']} (basis: {item['basis']})"
-                      for item in document["resolutions"]]
-            lines.append("")
-        lines += ["## Review", ""]
-        lines += [f"- **{key.capitalize()}:** {review[key]}" for key in ("pair", "defeater", "decision", "basis")]
-        lines += ["", "Design complete, not implementation. Verification/review claims are supplied "
-                  "by the agent, not independently checked by the CLI.", ""]
-        return "\n".join(lines)
-
-    def _finish(self, document):
-        """Replay a durable passing review without publishing a second artifact."""
-        path = self.root / router.artifact_path(document)
-        expected = self._artifact(document)
-        try:
-            existing = self._read(path)
-        except FileNotFoundError:
-            pass
-        else:
-            require(existing == expected, f"artifact exists with different content: {path}")
-        # An earlier replace might have succeeded before a directory-fsync failure.
-        # Publish the same bytes to establish durability before marking complete.
-        self._atomic(path, expected)
-        complete = {"schema_version": 3, "phase": "complete", "ticket": document["ticket"]}
-        self._write(complete)
-        return complete
-
     def start(self, request):
         router.require(router.text(request), "--request must be nonempty text")
         # Fail on legacy state before creating the writer lock or state directory.
@@ -195,7 +153,9 @@ class Store:
             if current is not None and current["phase"] != "complete":
                 require(current["request"] == request,
                         "a different request is active; resume with the bare invocation")
-                return self._finish(current) if current["phase"] == "publishing" else current
+                return current
+            if current is not None and current["request"] == request:
+                return current
             document = router.new(request)
             self._write(document)
             return document
@@ -206,20 +166,15 @@ class Store:
         if current is None:
             return None
         with self._lock():
-            current = self.load()
-            return self._finish(current) if current["phase"] == "publishing" else current
+            return self.load()
 
     def submit(self, ticket, result):
         # Missing state is an error, not an implicit new run.
         require(self._load_optional() is not None, "no active run; start with --request TEXT")
         with self._lock():
             current = self.load()
-            require(current["ticket"] == ticket and current["phase"] != "complete",
+            require(current.get("ticket") == ticket and current["phase"] != "complete",
                     "stale or duplicate ticket; resume with the bare invocation")
-            if current["phase"] == "publishing":
-                require(result == {"status": "pass", **current["review"]},
-                        "publication pending; resume or replay the exact passing result")
-                return self._finish(current)
             updated = router.advance(current, result)
             self._write(updated)
-            return self._finish(updated) if updated["phase"] == "publishing" else updated
+            return updated

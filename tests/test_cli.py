@@ -38,9 +38,23 @@ class CliTests(unittest.TestCase):
         self.assertIn(CANDIDATE['summary'], second)
         self.assertNotIn('TASK: draft', second)
         third = self.submit(PASS).stdout
-        self.assertTrue(third.startswith('DONE: .agents/artifacts/solution-design-'))
+        self.assertTrue(third.startswith('# Solution design\n'))
+        self.assertIn('## Request', third)
+        self.assertIn(CANDIDATE['summary'], third)
+        self.assertIn('## Decisions', third)
+        self.assertIn(PASS['defeater'], third)
+        self.assertTrue(third.endswith('DONE: design recorded in .agents/decision.json\n'))
         self.assertEqual(self.cli().stdout, third)
-        self.assertEqual(len(list((self.root / '.agents/artifacts').glob('*.md'))), 1)
+        self.assertFalse((self.root / '.agents/artifacts').exists())
+
+    def test_explicit_request_after_done_replays_same_and_replaces_different(self):
+        self.cli('--request', REQUEST)
+        self.submit(CANDIDATE)
+        done = self.submit(PASS).stdout
+        self.assertEqual(self.cli('--request', REQUEST).stdout, done)
+        different = self.cli('--request', 'Design a different command.').stdout
+        self.assertIn('TASK: draft', different)
+        self.assertEqual(Store(self.root).load()['request'], 'Design a different command.')
 
     def test_no_run_prints_start_usage_and_creates_no_files(self):
         output = self.cli().stdout

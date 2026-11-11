@@ -8,9 +8,9 @@ import sys
 import tempfile
 import unittest
 
-from support import ROOT, CLI, REQUEST, CANDIDATE, NEED
+from support import ROOT, CLI, REQUEST, CANDIDATE, PASS, NEED, BLOCKED, RESOLVED
 from engine import router
-from engine.prompts import DRAFT, RESOLVE, REVIEW, GUIDANCE_PATH, render
+from engine.prompts import DRAFT, RESOLVE, REVIEW, GUIDANCE_PATH, DONE, render, summary
 
 
 class PromptTests(unittest.TestCase):
@@ -73,6 +73,39 @@ class PromptTests(unittest.TestCase):
                      'identifiable trigger, changed decision and observable outcome'):
             self.assertIn(term, text)
         self.assertLessEqual(len(text.split()), 350)
+
+    def test_complete_summary_contains_full_record_and_ends_with_done_marker(self):
+        resolve = router.advance(router.new(REQUEST), NEED)
+        blocked = router.advance(resolve, BLOCKED)
+        redraft = router.advance(blocked, RESOLVED)
+        complete = router.advance(router.advance(redraft, CANDIDATE), PASS)
+        text = summary(complete)
+        fields = (REQUEST, CANDIDATE['summary'], CANDIDATE['criteria'][0],
+                  CANDIDATE['decisions'][0]['id'], '## Resolutions', NEED['question'],
+                  RESOLVED['answer'], RESOLVED['basis'], PASS['pair'], PASS['defeater'],
+                  PASS['decision'], PASS['basis'], 'Design complete, not implementation.')
+        fields += tuple(CANDIDATE['decisions'][0][key]
+                        for key in ('choice', 'basis', 'alternative', 'tradeoff', 'revisit'))
+        for value in fields:
+            self.assertIn(value, text)
+        output = render(complete, CLI, Path('/unrelated/task'))
+        self.assertEqual(output, text + '\n\n' + DONE)
+        self.assertTrue(output.endswith(DONE))
+
+    def test_summary_omits_resolutions_when_empty_and_marks_no_decisions(self):
+        complete = router.advance(router.advance(router.new(REQUEST), CANDIDATE), PASS)
+        text = summary(complete)
+        self.assertNotIn('## Resolutions', text)
+        empty = {**complete, 'candidate': {**complete['candidate'], 'decisions': []}}
+        self.assertIn('None consequential.', summary(empty))
+
+    def test_done_marker_is_not_injected_into_incomplete_prompts(self):
+        candidate = {**CANDIDATE,
+                     'summary': 'The literal DONE: design recorded in .agents/decision.json appears in context.'}
+        review = router.advance(router.new(REQUEST), candidate)
+        output = render(review, CLI, Path('/unrelated/task'))
+        self.assertIn(DONE, output)
+        self.assertFalse(output.endswith(DONE))
 
     def test_installed_reference_path_survives_foreign_cwd_and_spaces(self):
         with tempfile.TemporaryDirectory(prefix='sbd install ') as temporary:

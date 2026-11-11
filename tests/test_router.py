@@ -13,19 +13,20 @@ class RouterTests(unittest.TestCase):
     def test_zero_gap_path_needs_only_candidate_and_review(self):
         draft = router.new(REQUEST)
         self.assertEqual(set(draft), {"schema_version", "phase", "ticket", "request"})
-        self.assertEqual(draft["schema_version"], 3)
+        self.assertEqual(draft["schema_version"], 4)
         self.assertEqual(draft["phase"], "draft")
         review = router.advance(draft, CANDIDATE)
         final = router.advance(review, PASS)
         self.assertEqual((draft["phase"], review["phase"], final["phase"]),
-                         ("draft", "review", "publishing"))
+                         ("draft", "review", "complete"))
         self.assertEqual(draft["request"], final["request"])
         self.assertEqual(final["candidate"], body(CANDIDATE))
+        self.assertEqual(final["review"], body(PASS))
         self.assertNotEqual(draft["ticket"], review["ticket"])
-        self.assertEqual(review["ticket"], final["ticket"])
+        self.assertNotIn("ticket", final)
         self.assertNotIn("candidate", draft)  # Pure transitions.
-        self.assertEqual(router.artifact_path(final),
-                         f".agents/artifacts/solution-design-{final['ticket']}.md")
+        self.assertEqual(set(final), {"schema_version", "phase", "request",
+                                      "candidate", "review"})
 
     def test_every_route_including_material_review_need(self):
         draft = router.new(REQUEST)
@@ -103,30 +104,35 @@ class RouterTests(unittest.TestCase):
                     {**good, 'phase': 'blocked'},
                     {**good, 'phase': 'publishing'},
                     {**good, 'schema_version': 1},
-                    {**good, 'schema_version': 2}):
+                    {**good, 'schema_version': 2},
+                    {**good, 'schema_version': 3}):
             with self.assertRaises(DispatchError):
                 router.validate(bad)
         with self.assertRaisesRegex(DispatchError, 'legacy'):
-            router.validate({**good, 'schema_version': 1})
+            router.validate({**good, 'schema_version': 3})
 
     def test_phase_specific_payloads_and_complete_state_are_exact(self):
         review = router.advance(router.new(REQUEST), CANDIDATE)
-        publishing = router.advance(review, PASS)
-        self.assertEqual(router.validate(publishing), publishing)
-        self.assertEqual(set(publishing), {"schema_version", "phase", "ticket", "request",
-                                           "candidate", "review"})
-        complete = {"schema_version": 3, "phase": "complete", "ticket": publishing["ticket"]}
+        complete = router.advance(review, PASS)
         self.assertEqual(router.validate(complete), complete)
-        with self.assertRaises(DispatchError):
-            router.validate({**complete, "request": REQUEST})
-        with self.assertRaises(DispatchError):
-            router.validate({**publishing, "gaps": REVISE["gaps"]})
-        with self.assertRaises(DispatchError):
-            router.validate({**publishing, "phase": "complete"})
-        with self.assertRaises(DispatchError):
-            router.validate({**review, "review": body(PASS)})
-        with self.assertRaises(DispatchError):
-            router.validate({**review, "open": body(NEED)})
+        self.assertEqual(set(complete), {"schema_version", "phase", "request",
+                                         "candidate", "review"})
+        for bad in (
+                {key: value for key, value in complete.items() if key != "request"},
+                {key: value for key, value in complete.items() if key != "candidate"},
+                {key: value for key, value in complete.items() if key != "review"},
+                {**complete, "ticket": review["ticket"]},
+                {**complete, "gaps": REVISE["gaps"]},
+                {**complete, "open": body(NEED)},
+                {**complete, "phase": "publishing"},
+                {**review, "review": body(PASS)},
+                {**review, "open": body(NEED)}):
+            with self.subTest(bad=bad):
+                with self.assertRaises(DispatchError):
+                    router.validate(bad)
+        old = {"schema_version": 3, "phase": "complete", "ticket": review["ticket"]}
+        with self.assertRaisesRegex(DispatchError, 'legacy'):
+            router.validate(old)
 
 
 if __name__ == "__main__":

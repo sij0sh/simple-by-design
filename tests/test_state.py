@@ -15,10 +15,6 @@ def body(result):
     return {key: value for key, value in result.items() if key != "status"}
 
 
-def artifact(root, state):
-    return root / f".agents/artifacts/solution-design-{state['ticket']}.md"
-
-
 class StateTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -31,7 +27,7 @@ class StateTests(unittest.TestCase):
     def submit(self, result):
         return self.store.submit(self.store.load()['ticket'], result)
 
-    def test_start_resume_and_explicit_new_run_after_completion(self):
+    def test_start_resume_and_request_handling_after_completion(self):
         self.assertEqual(self.path, self.root / '.agents/decision.json')
         self.assertEqual(Store(self.root).resume(), self.initial)
         self.assertEqual(self.store.start(REQUEST), self.initial)
@@ -41,20 +37,24 @@ class StateTests(unittest.TestCase):
         self.assertEqual(self.path.read_bytes(), before)
         review = self.submit(CANDIDATE)
         complete = self.submit(PASS)
-        self.assertEqual(complete, {'schema_version': 3, 'phase': 'complete',
-                                    'ticket': review['ticket']})
+        self.assertEqual(complete, {'schema_version': 4, 'phase': 'complete',
+                                    'request': REQUEST, 'candidate': review['candidate'],
+                                    'review': body(PASS)})
+        self.assertNotIn('ticket', complete)
         self.assertEqual(Store(self.root).resume(), complete)
-        path = artifact(self.root, complete)
-        text = path.read_text()
-        for value in (CANDIDATE['summary'], CANDIDATE['decisions'][0]['alternative'], PASS['defeater']):
-            self.assertIn(value, text)
-        self.assertIn(REQUEST, text)
-        self.assertFalse((self.root / '.agents/sbd-adaptive').exists())
-        new = self.store.start(REQUEST)  # Explicit --request is sufficient after DONE.
-        self.assertNotEqual(new['ticket'], complete['ticket'])
-        self.assertTrue(path.is_file())
-        with self.assertRaisesRegex(DispatchError, 'duplicate'):
-            self.store.submit(complete['ticket'], PASS)
+        self.assertFalse((self.root / '.agents/artifacts').exists())
+        # The same explicit request is a replay, not a new run or a rewrite.
+        before = self.path.read_bytes()
+        self.assertEqual(self.store.start(REQUEST), complete)
+        self.assertEqual(self.path.read_bytes(), before)
+        # A different explicit request starts a new run and replaces the record.
+        new = self.store.start('New request')
+        self.assertEqual(new['phase'], 'draft')
+        self.assertEqual(new['request'], 'New request')
+        self.assertNotEqual(new['ticket'], review['ticket'])
+        self.assertNotIn('candidate', new)
+        with self.assertRaisesRegex(DispatchError, 'stale or duplicate'):
+            self.store.submit(review['ticket'], PASS)
         self.assertEqual(self.store.resume(), new)
 
     def test_missing_resume_creates_nothing_and_legacy_state_is_untouched(self):
@@ -86,6 +86,35 @@ class StateTests(unittest.TestCase):
         with self.assertRaises(DispatchError):
             self.submit(PASS)
 
+    def test_complete_keeps_resolutions_and_full_record(self):
+        self.submit(NEED)
+        self.submit(BLOCKED)
+        self.submit(RESOLVED)
+        self.submit(CANDIDATE)
+        complete = self.submit(PASS)
+        self.assertEqual(complete['phase'], 'complete')
+        self.assertEqual(complete['request'], REQUEST)
+        self.assertEqual(complete['candidate'], body(CANDIDATE))
+        self.assertEqual(complete['review'], body(PASS))
+        self.assertEqual(complete['resolutions'], [{
+            'type': NEED['type'], 'question': NEED['question'],
+            'answer': RESOLVED['answer'], 'basis': RESOLVED['basis']}])
+        self.assertEqual(set(complete), {'schema_version', 'phase', 'request',
+                                         'candidate', 'resolutions', 'review'})
+
+    def test_completion_is_one_atomic_write(self):
+        self.submit(CANDIDATE)
+        calls = []
+        atomic = self.store._atomic
+
+        def counted(path, raw):
+            calls.append(path)
+            return atomic(path, raw)
+
+        with patch.object(self.store, '_atomic', side_effect=counted):
+            self.submit(PASS)
+        self.assertEqual(calls, [self.path])
+
     def test_stale_invalid_duplicate_results_do_not_advance(self):
         review = self.submit(CANDIDATE)
         before = self.path.read_bytes()
@@ -94,10 +123,10 @@ class StateTests(unittest.TestCase):
             with self.assertRaises(DispatchError):
                 self.store.submit(ticket, result)
             self.assertEqual(self.path.read_bytes(), before)
-        complete = self.submit(PASS)
+        self.submit(PASS)
         with self.assertRaisesRegex(DispatchError, 'duplicate'):
-            self.store.submit(complete['ticket'], PASS)
-        self.assertEqual(len(list((self.root / '.agents/artifacts').glob('*.md'))), 1)
+            self.store.submit(review['ticket'], PASS)
+        self.assertFalse((self.root / '.agents/artifacts').exists())
 
     def test_replace_and_fsync_failure_preserve_old_checkpoint(self):
         before = self.path.read_bytes()
@@ -131,78 +160,64 @@ class StateTests(unittest.TestCase):
         with self.assertRaisesRegex(DispatchError, 'stale'):
             self.store.submit(self.initial['ticket'], CANDIDATE)
 
-    def test_publication_failure_is_pending_not_done_and_exact_replay_finishes(self):
+    def test_pass_write_failure_before_replace_requires_resubmission(self):
         review = self.submit(CANDIDATE)
-        atomic = self.store._atomic
-
-        def fail_artifact(path, raw):
-            if path.suffix == '.md':
-                raise OSError('publication failed')
-            return atomic(path, raw)
-
-        with patch.object(self.store, '_atomic', side_effect=fail_artifact):
-            with self.assertRaisesRegex(OSError, 'publication'):
+        before = self.path.read_bytes()
+        with patch('engine.state.os.replace', side_effect=OSError('interrupted write')):
+            with self.assertRaises(OSError):
                 self.submit(PASS)
-        self.assertEqual(self.store.load()['phase'], 'publishing')
-        with self.assertRaisesRegex(DispatchError, 'exact passing'):
-            self.store.submit(review['ticket'], {**PASS, 'basis': 'different review'})
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(Store(self.root).resume()['phase'], 'review')
         complete = self.store.submit(review['ticket'], PASS)
         self.assertEqual(complete['phase'], 'complete')
-        self.assertTrue(artifact(self.root, complete).exists())
+        self.assertEqual(complete['review'], body(PASS))
+        self.assertFalse((self.root / '.agents/artifacts').exists())
 
-    def test_crash_after_artifact_before_completion_recovers_on_bare_resume(self):
-        self.submit(CANDIDATE)
-        write = self.store._write
+    def test_pass_write_failure_after_replace_recovers_by_resume(self):
+        fsync, replace = os.fsync, os.replace
+        replaced = False
 
-        def fail_complete(document):
-            if document['phase'] == 'complete':
-                raise OSError('crash before completion checkpoint')
-            return write(document)
+        def after_replace(source, target):
+            nonlocal replaced
+            replace(source, target)
+            replaced = True
 
-        with patch.object(self.store, '_write', side_effect=fail_complete):
-            with self.assertRaises(OSError):
-                self.submit(PASS)
-        pending = self.store.load()
-        self.assertEqual(pending['phase'], 'publishing')
-        path = artifact(self.root, pending)
-        before = path.read_bytes()
-        self.assertEqual(Store(self.root).resume()['phase'], 'complete')
-        self.assertEqual(path.read_bytes(), before)
-        self.assertEqual(len(list((self.root / '.agents/artifacts').glob('*.md'))), 1)
+        def fail_directory(fd):
+            if replaced:
+                raise OSError('directory sync failure after rename')
+            return fsync(fd)
 
-    def test_failure_after_artifact_replace_resyncs_before_completing(self):
-        self.submit(CANDIDATE)
-        atomic = self.store._atomic
-
-        def fail_after_publish(path, raw):
-            atomic(path, raw)
-            if path.suffix == '.md':
-                raise OSError('directory sync may have failed')
-
-        with patch.object(self.store, '_atomic', side_effect=fail_after_publish):
-            with self.assertRaises(OSError):
-                self.submit(PASS)
-        with patch.object(self.store, '_atomic', wraps=atomic) as retried:
-            self.store.resume()
-        self.assertEqual([call.args[0].suffix for call in retried.call_args_list], ['.md', '.json'])
-
-    def test_existing_conflicting_artifact_is_never_overwritten(self):
         review = self.submit(CANDIDATE)
-        path = artifact(self.root, review)
-        path.parent.mkdir()
-        path.write_text('other content')
-        with self.assertRaisesRegex(DispatchError, 'different content'):
-            self.submit(PASS)
-        self.assertEqual(path.read_text(), 'other content')
-        self.assertEqual(self.store.load()['phase'], 'publishing')
+        with patch('engine.state.os.replace', side_effect=after_replace), \
+                patch('engine.state.os.fsync', side_effect=fail_directory):
+            with self.assertRaises(OSError):
+                self.submit(PASS)
+        complete = self.store.load()
+        self.assertEqual(complete['phase'], 'complete')
+        self.assertEqual(complete['review'], body(PASS))
+        with self.assertRaisesRegex(DispatchError, 'stale or duplicate'):
+            self.store.submit(review['ticket'], PASS)
+        self.assertEqual(Store(self.root).resume(), complete)
+
+    def test_legacy_artifacts_are_never_touched(self):
+        artifacts = self.root / '.agents/artifacts'
+        artifacts.mkdir()
+        old = artifacts / ('solution-design-' + 'a' * 32 + '.md')
+        old.write_text('old artifact\n')
+        before = old.read_bytes()
+        self.submit(CANDIDATE)
+        self.submit(PASS)
+        self.assertEqual(old.read_bytes(), before)
+        self.assertEqual(list(artifacts.iterdir()), [old])
 
     def test_corruption_fails_closed_for_reads_starts_and_submissions(self):
         valid = self.path.read_text()
-        bad_values = ['{', '[]', valid.replace('"schema_version": 3', '"schema_version": 999'),
-                      valid.replace('"schema_version": 3', '"schema_version": 3, "schema_version": 3'),
-                      valid.replace('"schema_version": 3', '"schema_version": NaN'),
+        bad_values = ['{', '[]', valid.replace('"schema_version": 4', '"schema_version": 999'),
+                      valid.replace('"schema_version": 4', '"schema_version": 4, "schema_version": 4'),
+                      valid.replace('"schema_version": 4', '"schema_version": NaN'),
                       valid.replace('"phase": "draft"', '"phase": []'),
-                      valid.replace('"schema_version": 3', '"schema_version": 2')]
+                      valid.replace('"schema_version": 4', '"schema_version": 3'),
+                      valid.replace('"schema_version": 4', '"schema_version": 2')]
         for raw in bad_values:
             self.path.write_text(raw)
             for action in (self.store.resume, lambda: self.store.start(REQUEST),
@@ -238,7 +253,7 @@ class StateTests(unittest.TestCase):
         with self.assertRaises(DispatchError):
             self.store.resume()
 
-    def test_lock_and_artifact_symlinks_rejected(self):
+    def test_lock_symlink_rejected(self):
         target = self.root / 'outside-file'
         target.write_text('safe')
         lock = self.path.parent / '.decision.lock'
@@ -247,16 +262,7 @@ class StateTests(unittest.TestCase):
         with self.assertRaises(OSError):
             self.submit(CANDIDATE)
         lock.unlink()
-        review = self.submit(CANDIDATE)
-        artifacts = self.root / '.agents/artifacts'
-        artifacts.symlink_to(self.path.parent, target_is_directory=True)
-        with self.assertRaises(DispatchError):
-            self.submit(PASS)
-        artifacts.unlink()
-        artifacts.mkdir()
-        artifact(self.root, review).symlink_to(target)
-        with self.assertRaises(OSError):
-            self.store.resume()
+        self.submit(CANDIDATE)
         self.assertEqual(target.read_text(), 'safe')
 
     def test_private_permissions_and_ignored_leftover_temporary(self):
@@ -264,24 +270,25 @@ class StateTests(unittest.TestCase):
         (self.path.parent / '.decision.dead.tmp').write_text('partial')
         self.assertEqual(self.store.resume(), self.initial)
         self.submit(CANDIDATE)
-        complete = self.submit(PASS)
-        self.assertEqual(artifact(self.root, complete).stat().st_mode & 0o777, 0o600)
+        self.submit(PASS)
+        self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
+        self.assertFalse((self.root / '.agents/artifacts').exists())
 
     def test_created_directory_names_are_synced_even_on_retry(self):
         sync = self.store._sync_directory
-        artifacts = self.root / '.agents/artifacts'
+        created = self.root / '.agents/checkpoints'
         # Simulate mkdir succeeding before its parent sync fails.
-        artifacts.mkdir()
+        created.mkdir()
         with patch.object(self.store, '_sync_directory', wraps=sync) as calls:
-            self.store._directories(artifacts, create=True)
+            self.store._directories(created, create=True)
         self.assertEqual([call.args[0] for call in calls.call_args_list],
                          [self.root, self.root / '.agents'])
 
-    def test_concurrent_final_results_publish_exactly_once(self):
+    def test_concurrent_final_results_complete_exactly_once(self):
         self.submit(CANDIDATE)
         self.concurrent_submission(PASS)
         self.assertEqual(self.store.resume()['phase'], 'complete')
-        self.assertEqual(len(list((self.root / '.agents/artifacts').glob('*.md'))), 1)
+        self.assertFalse((self.root / '.agents/artifacts').exists())
 
     def test_two_cli_writers_only_one_advances_the_ticket(self):
         self.concurrent_submission(CANDIDATE)
@@ -304,11 +311,12 @@ class StateTests(unittest.TestCase):
         self.assertEqual(legacy.read_text(), '{"schema_version": 2, "events": ["old"]}')
 
         new = legacy_root / '.agents/decision.json'
-        new.write_text(json.dumps({'schema_version': 3, 'phase': 'complete',
-                                   'ticket': 'a' * 32}))
-        self.assertEqual(Store(legacy_root).resume()['phase'], 'complete')
-        self.assertEqual(new.read_text(), json.dumps({'schema_version': 3, 'phase': 'complete',
-                                                       'ticket': 'a' * 32}))
+        old_complete = json.dumps({'schema_version': 3, 'phase': 'complete',
+                                   'ticket': 'a' * 32})
+        new.write_text(old_complete)
+        with self.assertRaisesRegex(DispatchError, 'legacy'):
+            Store(legacy_root).resume()
+        self.assertEqual(new.read_text(), old_complete)
         self.assertEqual(legacy.read_text(), '{"schema_version": 2, "events": ["old"]}')
 
         new.write_text(json.dumps({'schema_version': 2, 'phase': 'draft',

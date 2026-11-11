@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import shlex
 
-from .router import CHECKS, DECISION, RESULTS, TYPES, artifact_path, prompt as phase_prompt
+from .router import CHECKS, DECISION, RESULTS, TYPES, prompt as phase_prompt
 
 DRAFT = """Design only; inspect within authority; never edit report-only targets. Choose means: request/delegation → supported decisions/conventions → applicable defaults → simplest adequate. Defects defeat precedent; defaults never settle goals/permissions. Honor approvals/deferrals; ask only for material unresolved user-owned intent. Facts: observe, or assume with cheap reversal, detection before harm, and revisit; otherwise need. Expose assumptions. State checkable criteria. Consequential decisions: cited/assumed basis, serious alternative, tradeoff, revisit; routine reversible choices need none. Preserve resolutions; revise feedback's affected decisions/dependents, keeping others. Return candidate or need for one intent/fact gap."""
 
@@ -37,9 +37,39 @@ def return_command(document, script, root):
         "python3", script, "--root", root, "done", document["ticket"]))
 
 
+NOTICE = ("Design complete, not implementation. Verification/review claims are supplied "
+          "by the agent, not independently checked by the CLI.")
+DONE = "DONE: design recorded in .agents/decision.json"
+
+
+def summary(document):
+    """Render a completed checkpoint as the human-readable design record."""
+    candidate, review = document["candidate"], document["review"]
+    lines = ["# Solution design", "", "## Request", "", document["request"], "",
+             "## Summary", "", candidate["summary"], "", "## Criteria", ""]
+    lines += [f"- {item}" for item in candidate["criteria"]]
+    lines += ["", "## Decisions", ""]
+    for decision in candidate["decisions"]:
+        lines += [f"### {decision['id']}", ""]
+        lines += [f"- **{key.capitalize()}:** {decision[key]}"
+                  for key in ("choice", "basis", "alternative", "tradeoff", "revisit")]
+        lines.append("")
+    if not candidate["decisions"]:
+        lines += ["None consequential.", ""]
+    if document.get("resolutions"):
+        lines += ["## Resolutions", ""]
+        lines += [f"- ({item['type']}) {item['question']} → {item['answer']} (basis: {item['basis']})"
+                  for item in document["resolutions"]]
+        lines.append("")
+    lines += ["## Review", ""]
+    lines += [f"- **{key.capitalize()}:** {review[key]}" for key in ("pair", "defeater", "decision", "basis")]
+    lines += ["", NOTICE]
+    return "\n".join(lines)
+
+
 def render(document, script, root):
     if document["phase"] == "complete":
-        return f"DONE: {artifact_path(document)}"
+        return summary(document) + "\n\n" + DONE
     prompt = phase_prompt(document)
     context = {"request": document["request"]}
     if document.get("resolutions"):

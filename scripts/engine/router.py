@@ -30,7 +30,7 @@ DECISION = ("id", "choice", "basis", "alternative", "tradeoff", "revisit")
 GAP = ("check", "witness", "decision")
 CHECKS = ("pair", "defeater", "decision")
 TYPES = ("intent", "fact")
-PHASES = ("draft", "resolve", "blocked", "review", "publishing", "complete")
+PHASES = ("draft", "resolve", "blocked", "review", "complete")
 PROMPTS = {"draft": "draft", "resolve": "resolve", "blocked": "resolve", "review": "review"}
 
 
@@ -90,12 +90,8 @@ SHAPES = {
 
 def new(request):
     require(text(request), "--request must be nonempty text")
-    return {"schema_version": 3, "phase": "draft", "ticket": uuid.uuid4().hex,
+    return {"schema_version": 4, "phase": "draft", "ticket": uuid.uuid4().hex,
             "request": request}
-
-
-def artifact_path(document):
-    return f".agents/artifacts/solution-design-{document['ticket']}.md"
 
 
 def prompt(document):
@@ -106,39 +102,39 @@ def prompt(document):
 def validate(document):
     require(isinstance(document, dict), "invalid checkpoint")
     version = document.get("schema_version")
-    if type(version) is int and version in (1, 2):
+    if type(version) is int and version in (1, 2, 3):
         raise DispatchError(
             f"legacy checkpoint (schema {version}); move .agents/decision.json aside, "
             "then start with --request")
-    require(type(version) is int and version == 3,
+    require(type(version) is int and version == 4,
             "unsupported checkpoint schema; move .agents/decision.json aside, "
             "then start with --request")
     phase = document.get("phase")
     require(isinstance(phase, str) and phase in PHASES, "invalid checkpoint phase")
-    ticket = document.get("ticket")
-    require(isinstance(ticket, str) and re.fullmatch(r"[0-9a-f]{32}", ticket),
-            "invalid checkpoint ticket")
 
-    common = {"schema_version", "phase", "ticket"}
-    allowed = set(common)
-    required = set(common)
-    if phase != "complete":
-        allowed.add("request")
-        required.add("request")
-    if phase == "draft":
-        allowed.update(("candidate", "gaps", "resolutions"))
-    elif phase in ("resolve", "blocked"):
-        allowed.update(("candidate", "gaps", "resolutions", "open"))
-        required.add("open")
-    elif phase == "review":
-        allowed.update(("candidate", "resolutions"))
-        required.add("candidate")
-    elif phase == "publishing":
-        allowed.update(("candidate", "resolutions", "review"))
-        required.update(("candidate", "review"))
+    allowed = {"schema_version", "phase"}
+    required = {"schema_version", "phase"}
+    if phase == "complete":
+        allowed.update(("request", "candidate", "review", "resolutions"))
+        required.update(("request", "candidate", "review"))
+    else:
+        allowed.update(("ticket", "request"))
+        required.update(("ticket", "request"))
+        if phase == "draft":
+            allowed.update(("candidate", "gaps", "resolutions"))
+        elif phase in ("resolve", "blocked"):
+            allowed.update(("candidate", "gaps", "resolutions", "open"))
+            required.add("open")
+        elif phase == "review":
+            allowed.update(("candidate", "resolutions"))
+            required.add("candidate")
     require(set(document) <= allowed, "invalid checkpoint fields")
     require(required <= set(document), "missing checkpoint fields")
 
+    if "ticket" in document:
+        ticket = document["ticket"]
+        require(isinstance(ticket, str) and re.fullmatch(r"[0-9a-f]{32}", ticket),
+                "invalid checkpoint ticket")
     if "request" in document:
         require(text(document["request"]), "invalid checkpoint request")
     if "candidate" in document:
@@ -153,7 +149,6 @@ def validate(document):
     if "resolutions" in document:
         items(document["resolutions"], "resolutions", resolution)
     if "review" in document:
-        require(phase == "publishing", "review is only valid while publishing")
         require(isinstance(document["review"], dict), "invalid checkpoint review")
         check_result("review", {"status": "pass", **document["review"]})
     return document
@@ -203,8 +198,8 @@ def advance(document, result):
     elif status == "revise":
         updated.update(phase="draft", gaps=result["gaps"])
     elif status == "pass":
-        # Retain the final ticket until publication is durable, allowing exact replay.
-        updated.update(phase="publishing", review=body(result))
+        updated.update(phase="complete", review=body(result))
+        updated.pop("ticket", None)
     if status != "pass":
         updated["ticket"] = uuid.uuid4().hex
     return validate(updated)
