@@ -35,7 +35,7 @@ class CliTests(unittest.TestCase):
         self.assertNotIn('TASK: resolve', first)
         second = self.submit(CANDIDATE).stdout
         self.assertIn('TASK: review', second)
-        self.assertIn(CANDIDATE['text'], second)
+        self.assertIn(CANDIDATE['summary'], second)
         self.assertNotIn('TASK: draft', second)
         third = self.submit(PASS).stdout
         self.assertTrue(third.startswith('DONE: .agents/artifacts/solution-design-'))
@@ -116,7 +116,7 @@ class CliTests(unittest.TestCase):
         request = 'request-start ' + 'x' * 30000 + ' request-end'
         draft = router.new(request)
         candidate = 'candidate-start ' + 'y' * 30000 + ' candidate-end'
-        review = router.advance(draft, {'status': 'candidate', 'text': candidate})
+        review = router.advance(draft, {**CANDIDATE, 'summary': candidate})
         for document in (draft, review):
             output = render(document, CLI, self.root)
             self.assertIn(request, output)

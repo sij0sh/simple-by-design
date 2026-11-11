@@ -3,21 +3,29 @@
 import json
 import shlex
 
-from .router import RESULTS
+from .router import CHECKS, DECISION, RESULTS, TYPES
 
-DRAFT = """Propose the simplest adequate solution design, not implementation. Inspect only as authorized by the request; do not edit a report-only target. Include material basis/citations, consequential choices with a serious alternative and tradeoff, assumptions/revisit conditions, and verification still needed. Preserve relevant prior resolutions in the design. Ask only when uncertainty could materially change it; ordinary reversible choices are yours. Return candidate, or need with one question and its consequence."""
+DRAFT = """Propose the simplest adequate solution design, not implementation. Inspect only as authorized; do not edit a report-only target. State checkable success criteria. Record each consequential choice as a decision: basis (citation, resolution, or "assumption: ..."), a serious alternative, tradeoff and revisit condition; ordinary reversible choices need none. On feedback, revise the named decisions and what depends on them; keep the rest. Return candidate, or need for one intent or fact gap whose answer could change the design."""
 
-RESOLVE = """Resolve this one material uncertainty within the request's authority. Intent needs the requester; facts need observation, otherwise remain assumptions. Compare serious engineering choices yourself; cheap reversible assumptions need a revisit condition. Do not invent answers or perform unauthorized actions. Return resolved with the answer and its basis, or blocked with the question and what/who is needed. After asking, pause until the answer is available."""
+RESOLVE = """Settle this one gap within the request's authority. Intent: ask the requester; never pick. Fact: make the cheapest authorized observation; otherwise keep it an assumption with a revisit condition. Respect explicit deferrals; do not invent answers. Return resolved with the answer and its basis, or blocked with the question and who/what is needed; after asking, pause until answered."""
 
-REVIEW = """Challenge this candidate against the original request, scope, material failure modes and cited basis. Distinguish observation from inference and tests actually run from planned verification. Prefer the simplest adequate choice; do not invent gaps. Review is local unless genuinely delegated: disclose that in your basis. If required independent review is unavailable, return need, not pass. Return pass only if the current design is adequate with honest limits; otherwise revise with actionable feedback, or need for one consequential uncertainty. Do not silently rewrite and approve."""
+REVIEW = """Delegate this review to a subagent if available; otherwise proceed. Challenge the candidate by constructing counterexamples, not critique. Pair: two outcomes consistent with the request, resolutions and decisions that the requester or a criterion would treat differently. Defeater: a plausible, unrefuted condition under which a relied-on claim, decision or criterion fails; include criteria that pass while the goal fails. Decision: a consequential choice lacking a serious alternative, tradeoff or revisit condition, or inference stated as observed. Drop immaterial differences and explicit deferrals. Criteria must be checkable; tests need not have run. Return pass with each check's result ("none: why") and basis noting delegated or local, revise for choice gaps naming affected decisions, or need for one intent or fact gap."""
 
 INSTRUCTIONS = {"draft": DRAFT, "resolve": RESOLVE, "review": REVIEW}
 FOOTER = "Return results through the printed command; design only."
 
 
+EXAMPLES = {
+    "criteria": ["..."],
+    "decisions": [{key: "D1" if key == "id" else "..." for key in DECISION}],
+    "gaps": [{"check": " | ".join(CHECKS), "witness": "...", "decision": "D1 | new"}],
+    "type": " | ".join(TYPES),
+}
+
+
 def contract(prompt):
     return "Return JSON: " + " OR ".join(
-        json.dumps({"status": status, **{key: "..." for key in fields}})
+        json.dumps({"status": status, **{key: EXAMPLES.get(key, "...") for key in fields}})
         for status, fields in RESULTS[prompt].items())
 
 
@@ -32,13 +40,13 @@ def render(document, script, root):
         return f"DONE: {document['artifact']}"
     prompt = document["prompt"]
     context = {"request": document["request"]}
-    for key in ("candidate", "basis"):
+    for key in ("resolutions", "candidate"):
         if document[key]:
             context[key] = document[key]
     if prompt == "draft" and document["feedback"]:
         context["feedback"] = document["feedback"]
     if prompt == "resolve":
-        context["need"] = document["need"]
+        context["gap"] = document["need"]
         if document["blocker"]:
             context["blocked_on"] = document["blocker"]
     heading = f"TASK: {prompt}"

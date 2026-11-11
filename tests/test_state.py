@@ -34,8 +34,10 @@ class StateTests(unittest.TestCase):
         complete = self.submit(PASS)
         self.assertEqual(Store(self.root).resume(), complete)
         artifact = self.root / complete['artifact']
-        self.assertIn(CANDIDATE['text'], artifact.read_text())
-        self.assertIn(REQUEST, artifact.read_text())
+        text = artifact.read_text()
+        for value in (CANDIDATE['summary'], CANDIDATE['decisions'][0]['alternative'], PASS['defeater']):
+            self.assertIn(value, text)
+        self.assertIn(REQUEST, text)
         new = self.store.start(REQUEST)  # Explicit --request is sufficient after DONE.
         self.assertNotEqual(new['run_id'], complete['run_id'])
         self.assertTrue(artifact.is_file())
@@ -65,7 +67,7 @@ class StateTests(unittest.TestCase):
         resolved = self.submit(RESOLVED)
         self.assertEqual(resolved['request'], REQUEST)
         self.assertEqual(resolved['prompt'], 'draft')
-        self.assertIn('English', resolved['basis'])
+        self.assertEqual(resolved['resolutions'][0]['answer'], 'Use English.')
         with self.assertRaises(DispatchError):
             self.submit(PASS)
 
@@ -128,7 +130,7 @@ class StateTests(unittest.TestCase):
                 self.submit(PASS)
         self.assertEqual(self.store.load()['status'], 'publishing')
         with self.assertRaisesRegex(DispatchError, 'exact passing'):
-            self.store.submit(review['ticket'], {'status': 'pass', 'basis': 'different review'})
+            self.store.submit(review['ticket'], {**PASS, 'basis': 'different review'})
         complete = self.store.submit(review['ticket'], PASS)
         self.assertEqual(complete['status'], 'complete')
         self.assertTrue((self.root / complete['artifact']).exists())
@@ -180,9 +182,9 @@ class StateTests(unittest.TestCase):
 
     def test_corruption_fails_closed_for_reads_starts_and_submissions(self):
         valid = self.path.read_text()
-        bad_values = ['{', '[]', valid.replace('"schema_version": 1', '"schema_version": 999'),
-                      valid.replace('"schema_version": 1', '"schema_version": 1, "schema_version": 1'),
-                      valid.replace('"schema_version": 1', '"schema_version": NaN'),
+        bad_values = ['{', '[]', valid.replace('"schema_version": 2', '"schema_version": 999'),
+                      valid.replace('"schema_version": 2', '"schema_version": 2, "schema_version": 2'),
+                      valid.replace('"schema_version": 2', '"schema_version": NaN'),
                       valid.replace('"prompt": "draft"', '"prompt": []')]
         for raw in bad_values:
             self.path.write_text(raw)

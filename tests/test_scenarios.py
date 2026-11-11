@@ -3,84 +3,97 @@
 import tempfile
 import unittest
 
-from support import Store, DispatchError
+from support import Store, DispatchError, PASS
+
+
+def candidate(summary, criteria=('Checkable outcome.',), decisions=()):
+    return {'status': 'candidate', 'summary': summary, 'criteria': list(criteria),
+            'decisions': list(decisions)}
+
+
+def decision(id, choice, alternative='Serious rival.', revisit='Assumption fails.'):
+    return {'id': id, 'choice': choice, 'basis': 'assumption: typical load.',
+            'alternative': alternative, 'tradeoff': 'Simpler, less flexible.', 'revisit': revisit}
+
+
+def gap(check, witness, target='D1'):
+    return {'status': 'revise', 'gaps': [{'check': check, 'witness': witness, 'decision': target}]}
+
+
+def need(type, question, witness):
+    return {'status': 'need', 'type': type, 'question': question, 'witness': witness,
+            'consequence': 'Changes the design.'}
 
 
 class ScenarioFixtures(unittest.TestCase):
-    def run_design(self, request, draft, basis):
+    def run_steps(self, request, *results):
         with tempfile.TemporaryDirectory() as root:
             store = Store(root)
             state = store.start(request)
-            state = store.submit(state['ticket'], {'status': 'candidate', 'text': draft})
-            state = store.submit(state['ticket'], {'status': 'pass', 'basis': basis})
-            self.assertEqual(state['status'], 'complete')
-            self.assertEqual(state['request'], request)
+            for result in results:
+                state = store.submit(state['ticket'], result)
+            if state['status'] == 'complete':
+                state['text'] = (store.root / state['artifact']).read_text()
             return state
 
-    def test_precise_trivial_design_needs_no_resolve_prompt(self):
-        state = self.run_design('Design a command printing Hello once; no questions needed.',
-                                'Use a single print. No implementation; test exact output when authorized.',
-                                'Local review: request covered; no tests run.')
-        self.assertIsNone(state['need'])
+    def test_trivial_task_without_decisions_passes_with_no_resolve(self):
+        state = self.run_steps('Design a command printing Hello once.',
+                               candidate('Single print.', ['Prints exactly one line: Hello.']), PASS)
+        self.assertEqual(state['status'], 'complete')
+        self.assertEqual(state['resolutions'], [])
+        self.assertIn('None consequential.', state['text'])
 
-    def test_reversible_choice_is_not_a_required_question(self):
-        state = self.run_design('Design a local scratch cache; format is implementer choice.',
-                                'Choose JSON rather than a database for this small cache; migrate if size warrants.',
-                                'Local review: reversible choice and revisit condition adequate.')
-        self.assertIn('JSON', state['candidate'])
+    def test_pair_witness_routes_intent_to_requester_then_passes(self):
+        state = self.run_steps(
+            'Design a greeting; language unstated.',
+            need('intent', 'Which language?', 'Hello and Hola both fit; requester would differ.'),
+            {'status': 'blocked', 'question': 'Which language?', 'needs': 'Requester answer.'},
+            {'status': 'resolved', 'answer': 'English.', 'basis': 'Requester said English.'},
+            candidate('Print Hello.'), PASS)
+        self.assertEqual(state['status'], 'complete')
+        self.assertIn('(intent) Which language? → English.', state['text'])
 
-    def test_report_only_scope_is_preserved_in_original_request(self):
-        state = self.run_design('Report-only design; do not edit the target repository.',
-                                'Propose one function; no files edited. Verification is future work.',
-                                'Local review: report-only scope honored; tests not run.')
-        self.assertIn('do not edit', state['request'])
-
-    def test_unobserved_fact_can_remain_an_explicit_conditional(self):
-        state = self.run_design('Design diagnosis for intermittent timeout; no production access.',
-                                'Network loss is a hypothesis, not an observed cause. Compare packet loss with server timing when authorized.',
-                                'Local review: diagnosis conditional; unavailable evidence not invented.')
-        self.assertIn('hypothesis', state['candidate'])
-
-    def test_material_correction_requires_new_candidate_and_review(self):
+    def test_criteria_pass_while_goal_fails_forces_targeted_revise(self):
+        weak = candidate('Cache results.', ['Cache returns a value.'], [decision('D1', 'In-memory dict.')])
         with tempfile.TemporaryDirectory() as root:
             store = Store(root)
-            state = store.start('Design report-only output preserving the original greeting.')
-            state = store.submit(state['ticket'], {'status': 'candidate', 'text': 'Print a changed greeting.'})
-            old_ticket = state['ticket']
-            state = store.submit(old_ticket, {'status': 'revise', 'feedback': 'Restore original greeting.'})
-            self.assertIn('Restore', Store(root).resume()['feedback'])
+            state = store.start('Design a cache that never serves stale prices.')
+            state = store.submit(state['ticket'], weak)
+            state = store.submit(state['ticket'], gap('defeater', 'A stale value also satisfies the criterion.'))
+            self.assertEqual(state['prompt'], 'draft')
+            self.assertEqual(state['feedback'][0]['decision'], 'D1')
+            self.assertEqual(state['candidate'], {k: v for k, v in weak.items() if k != 'status'})
             with self.assertRaises(DispatchError):
-                store.submit(old_ticket, {'status': 'pass', 'basis': 'stale review'})
-            with self.assertRaises(DispatchError):
-                store.submit(state['ticket'], {'status': 'pass', 'basis': 'cannot pass draft'})
-            state = store.submit(state['ticket'], {'status': 'candidate', 'text': 'Preserve original greeting.'})
-            state = store.submit(state['ticket'], {'status': 'pass', 'basis': 'Local re-review against original request; no tests run.'})
+                store.submit(state['ticket'], PASS)  # Cannot approve a draft.
+            fixed = candidate('Cache with TTL below price update interval.',
+                              ['No read returns a price older than its update interval.'],
+                              [decision('D1', 'In-memory dict with TTL.')])
+            state = store.submit(state['ticket'], fixed)
+            self.assertEqual(state['feedback'], [])
+            state = store.submit(state['ticket'], PASS)
             self.assertEqual(state['status'], 'complete')
 
-    def test_consequential_intent_blocks_then_resumes_with_requester_answer(self):
-        self.blocked_case('Design greeting; intended language unknown.',
-                          'Which language?', 'Changes externally visible output.',
-                          'Requester language preference.', 'English, per requester.')
-
-    def test_unavailable_required_independence_can_be_reported_blocked(self):
-        self.blocked_case('Design greeting; independent review is required.',
-                          'Can an independent reviewer be provided?',
-                          'Required assurance cannot be supplied by local review.',
-                          'Independent reviewer access.', 'Independent reviewer supplied separate findings.')
-
-    def blocked_case(self, request, question, consequence, needs, answer):
+    def test_decision_missing_alternative_is_rejected_structurally(self):
         with tempfile.TemporaryDirectory() as root:
             store = Store(root)
-            state = store.start(request)
-            state = store.submit(state['ticket'], {'status': 'need', 'question': question, 'consequence': consequence})
-            state = store.submit(state['ticket'], {'status': 'blocked', 'question': question, 'needs': needs})
-            resumed = Store(root).resume()
-            self.assertEqual(resumed, state)
-            self.assertEqual(resumed['status'], 'blocked')
-            self.assertFalse(resumed['artifact'])
-            state = store.submit(resumed['ticket'], {'status': 'resolved', 'text': answer, 'basis': 'Acquired resolver response.'})
-            self.assertEqual(state['prompt'], 'draft')
-            self.assertEqual(state['request'], request)
+            state = store.start('Design storage.')
+            bare = {k: v for k, v in decision('D1', 'SQLite.').items() if k != 'alternative'}
+            with self.assertRaises(DispatchError):
+                store.submit(state['ticket'], candidate('Use SQLite.', decisions=[bare]))
+
+    def test_fact_gap_and_explicit_deferral_both_accumulate(self):
+        state = self.run_steps(
+            'Design diagnosis for intermittent timeout; no production access.',
+            need('fact', 'Is packet loss observed?', 'Loss vs slow server give different fixes.'),
+            {'status': 'resolved', 'answer': 'Unobserved; stays assumption.', 'basis': 'No access granted.'},
+            candidate('Compare loss with server timing when authorized.',
+                      decisions=[decision('D1', 'Assume network loss.', revisit='Server timing dominates.')]),
+            need('intent', 'Alert threshold?', 'Paging at 1% vs 5% differs to on-call.'),
+            {'status': 'resolved', 'answer': 'deferred: requester decides after trial.', 'basis': 'Requester deferred.'},
+            candidate('Same, threshold deferred.', decisions=[decision('D1', 'Assume network loss.')]),
+            PASS)
+        self.assertEqual([r['type'] for r in state['resolutions']], ['fact', 'intent'])
+        self.assertIn('deferred: requester decides', state['text'])
 
 
 if __name__ == '__main__':

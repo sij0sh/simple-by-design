@@ -9,3 +9,4 @@
 !.agents/sbd/design.json
 __pycache__/
 *.py[cod]
+.agents/

@@ -141,11 +141,28 @@ class Store:
 
     @staticmethod
     def _artifact(document):
-        return ("# Solution design\n\n## Request\n\n" + document["request"]
-                + "\n\n## Design\n\n" + document["candidate"]
-                + "\n\n## Review basis\n\n" + document["review"]
-                + "\n\nDesign complete, not implementation. Verification/review claims are supplied "
-                "by the agent, not independently checked by the CLI.\n")
+        candidate, review = document["candidate"], document["review"]
+        lines = ["# Solution design", "", "## Request", "", document["request"], "",
+                 "## Summary", "", candidate["summary"], "", "## Criteria", ""]
+        lines += [f"- {item}" for item in candidate["criteria"]]
+        lines += ["", "## Decisions", ""]
+        for decision in candidate["decisions"]:
+            lines += [f"### {decision['id']}", ""]
+            lines += [f"- **{key.capitalize()}:** {decision[key]}"
+                      for key in ("choice", "basis", "alternative", "tradeoff", "revisit")]
+            lines.append("")
+        if not candidate["decisions"]:
+            lines += ["None consequential.", ""]
+        if document["resolutions"]:
+            lines += ["## Resolutions", ""]
+            lines += [f"- ({item['type']}) {item['question']} → {item['answer']} (basis: {item['basis']})"
+                      for item in document["resolutions"]]
+            lines.append("")
+        lines += ["## Review", ""]
+        lines += [f"- **{key.capitalize()}:** {review[key]}" for key in ("pair", "defeater", "decision", "basis")]
+        lines += ["", "Design complete, not implementation. Verification/review claims are supplied "
+                  "by the agent, not independently checked by the CLI.", ""]
+        return "\n".join(lines)
 
     def _finish(self, document):
         """Replay a durable passing review without publishing a second artifact."""
@@ -193,7 +210,7 @@ class Store:
             require(current["ticket"] == ticket and current["status"] != "complete",
                     "stale or duplicate ticket; resume with the bare invocation")
             if current["status"] == "publishing":
-                require(result == {"status": "pass", "basis": current["review"]},
+                require(result == {"status": "pass", **current["review"]},
                         "publication pending; resume or replay the exact passing result")
                 return self._finish(current)
             updated = router.advance(current, result)
