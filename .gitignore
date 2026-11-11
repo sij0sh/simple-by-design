@@ -1,14 +1,8 @@
 .agents/*
-!.agents/artifacts/
-.agents/artifacts/*
-!.agents/artifacts/prompt-dispatch-plan.md
-!.agents/artifacts/prompt-dispatch-decisions.md
-!.agents/artifacts/prompt-dispatch-validation.md
 !.agents/sbd/
 .agents/sbd/*
 !.agents/sbd/design.json
 __pycache__/
 *.py[cod]
-.agents/
 .ruff_cache/
 mise.local.toml
