@@ -4,12 +4,10 @@ description: Design a solution through focused CLI-routed prompts.
 disable-model-invocation: true
 ---
 
-Set `S` to this skill's absolute directory. From the task project, run:
+Set `S` to this skill's absolute directory. From the task project:
 
 ```sh
-python3 "$S/scripts/sbd.py" --request '<complete request, constraints and permissions>'
+python3 "$S/scripts/sbd.py" --request '<request, constraints, permissions>'
 ```
 
-Loop: decide → construct a counterexample → resolve or defer → challenge again.
-
-Bare invocation resumes. Do only the returned prompt, then use its printed return command. Continue until `DONE`; if blocked, ask for what is needed and pause. Produce a design, not implementation.
+Bare invocation resumes. Do the returned prompt; submit through its printed command. Repeat until `DONE`. If blocked, obtain the answer and pause. Design only; no implementation.

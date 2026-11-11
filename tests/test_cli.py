@@ -109,7 +109,11 @@ class CliTests(unittest.TestCase):
         for path in (ROOT / 'SKILL.md', ROOT / 'README.md'):
             for link in re.findall(r'\]\(([^)]+)\)', path.read_text()):
                 self.assertTrue((path.parent / link).is_file(), link)
-        self.assertFalse((ROOT / 'references').exists())
+        reference = ROOT / 'references/design.md'
+        self.assertEqual(list((ROOT / 'references').iterdir()), [reference])
+        guidance_words = len(reference.read_text().split())
+        self.assertLessEqual(guidance_words, 350)
+        self.assertLessEqual(ordinary + guidance_words, 750)
         self.assertFalse((ROOT / 'scripts/engine/ledger.py').exists())
 
     def test_large_original_request_and_candidate_are_not_truncated(self):
