@@ -22,6 +22,15 @@ Observe missing facts when authorized. Provisional assumptions require cheap rev
 
 [Design guidance](references/design.md) condenses common principles, ten language profiles and one instruction-design rule. Software draft/review consult common principles and relevant language rows even for apparently settled choices; instruction-only designs consult the instruction rule; unrelated designs skip it. Printed paths are absolute and skill-relative. No automatic language selector or extra state.
 
+## Setup
+
+```sh
+mise install   # pinned Python and ruff from mise.toml
+mise run check # lint, tests and compile check
+```
+
+`mise` is optional; the runtime requirement is Python 3.11+ on POSIX.
+
 ## Usage
 
 Requires Python 3.11+ and POSIX (`flock`, atomic rename); no dependencies. Load [SKILL.md](SKILL.md) through your agent. Run from the task project, not the skill directory:
@@ -55,6 +64,7 @@ Breaking changes: `new/show/record/finish`, revision/history APIs and ledger ref
 
 ```sh
 python3 -m unittest discover -s tests -v
+mise run test # same suite under the pinned toolchain
 ```
 
 Tests cover routing, persistence, concurrency, publication recovery, policy disclosure and budgets: SKILL body ≤100 words; ordinary emitted static surface ≤400; domain-triggered guidance ≤350 (≤750 combined when fully read). Count repeated reading and calls in trials. The previous no-reference assertion now allows exactly `references/design.md`; no ledger returns.

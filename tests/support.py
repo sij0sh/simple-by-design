@@ -6,8 +6,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from engine.router import DispatchError
-from engine.state import Store
+from engine.router import DispatchError  # noqa: E402,F401 (re-exported for tests)
+from engine.state import Store  # noqa: E402,F401 (re-exported for tests)
 
 CLI = ROOT / "scripts" / "sbd.py"
 REQUEST = "Design a report-only greeting command. Print Hello once; do not implement it."

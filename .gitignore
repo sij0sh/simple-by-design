@@ -10,3 +10,5 @@
 __pycache__/
 *.py[cod]
 .agents/
+.ruff_cache/
+mise.local.toml
