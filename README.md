@@ -1,72 +1,64 @@
-# Simple by design — adaptive
+# simple-by-design-adaptive
 
-One CLI returns one focused design prompt: draft → resolve a gap if needed → review → DONE. Design only; no workflow selection or ledger maintenance.
+**Turns design into a falsifiable decision record, so coding agents settle consequential choices before implementation.**
 
-Loop: decide → construct a counterexample → resolve or defer → challenge again. Review (delegated to a subagent when available) must attempt three witnesses:
+Asked to design first, a coding agent can write a plausible plan and call it complete. Consequential choices stay implicit, assumptions become requirements, and review is the author agreeing with itself.
 
-- **Pair**: two outcomes consistent with everything established that the requester or a criterion would treat differently.
-- **Defeater**: a plausible, unrefuted condition breaking a relied-on claim, decision or criterion; incl. criteria passing while the goal fails.
-- **Decision**: a consequential choice lacking alternative, tradeoff or revisit condition, or inference stated as observed.
+## What changes
 
-| Surviving gap | Review status | Next |
-|---|---|---|
-| none | `pass` | publish |
-| choice (agent settles) | `revise` naming decisions | targeted redraft |
-| intent / fact | `need` | resolve within authority; ask / observe / safely assume / block |
+| Without this skill | With this skill |
+|---|---|
+| Plans implementation first | Settles consequential choices, then records the design |
+| "Looks complete" review | Review must attempt pair, defeater and decision witnesses |
+| Assumptions become requirements | Assumptions are exposed, gated or blocked |
+| Asks about every choice | Settles engineering means; asks only material user-owned intent |
+| Workflow state in chat or a ledger | One checkpoint, opaque tickets, atomic writes |
 
-## Decision authority
+## Why it works
 
-Choose in-scope engineering means without approval: request constraints/delegation → supported project decisions/conventions → applicable defaults → simplest adequate choice. Evidence of defects defeats precedent. Defaults settle means, not goals or permissions; ask only for material unresolved user-owned intent. Explicit approvals/deferrals remain binding. Design authority never authorizes implementation or external effects.
+**Review is a falsification test.** Two designs can satisfy every criterion and still differ materially; a criterion can pass while the goal fails. Review must try to name a pair, a defeater and any decision missing a serious alternative, tradeoff or revisit condition, or an inference posing as observation. A gap returns a targeted revise; a clean pass publishes.
 
-Observe missing facts when authorized. Provisional assumptions require cheap reversal, detection before material harm/commitment, and visible detection/revisit conditions. Otherwise obtain evidence or publish a visibly conditional report: summary starts `Conditional:`, names prerequisite, verifier and decisions not to act on; criteria test the gate. Requests requiring readiness block instead. DONE completes the report, not its prerequisites.
+**One job per prompt.** Draft, resolve a gap if needed, review. The CLI carries the checkpoint and context; the agent does not choose a workflow or keep a ledger. Prompt jobs are not fresh model contexts: review delegates to a subagent when available and says so when local.
 
-[Design guidance](references/design.md) condenses common principles, ten language profiles and one instruction-design rule. Software draft/review consult common principles and relevant language rows even for apparently settled choices; instruction-only designs consult the instruction rule; unrelated designs skip it. Printed paths are absolute and skill-relative. No automatic language selector or extra state.
+**Authority is explicit.** Request and delegation first, then supported decisions and conventions, then defaults; pick the simplest adequate. Defects defeat precedent; defaults settle means, not goals or permissions. Consequential decisions carry a basis, a serious alternative, a tradeoff and a revisit condition; routine reversible choices need none. Facts are observed when authorized, or assumed only with cheap reversal, detection before material harm and a visible revisit condition. Otherwise the run blocks or publishes a `Conditional:` design naming its prerequisite.
 
-## Setup
+## Quick start
 
-```sh
-mise install   # pinned Python and ruff from mise.toml
-mise run check # lint, tests and compile check
-```
+Place this directory in your harness skill folder. Invoke it explicitly. From the task project, Python 3.11+ on POSIX, no dependencies:
 
-`mise` is optional; the runtime requirement is Python 3.11+ on POSIX.
-
-## Usage
-
-Requires Python 3.11+ and POSIX (`flock`, atomic rename); no dependencies. Load [SKILL.md](SKILL.md) through your agent. Run from the task project, not the skill directory:
-
-```sh
+```bash
 S=/absolute/path/to/simple-by-design-adaptive
 python3 "$S/scripts/sbd.py" --request 'Design a greeting command; report only.'
-# Do the returned job; submit JSON using its printed command, for example:
-python3 "$S/scripts/sbd.py" done PRINTED_TICKET <<'JSON'
-{"status":"candidate","summary":"Print Hello once.","criteria":["Prints exactly one line: Hello."],"decisions":[]}
-JSON
-# Review using the next prompt and its NEW printed ticket; passing review publishes DONE.
-# Interrupted? Resume with:
-python3 "$S/scripts/sbd.py"
 ```
 
-`--root PROJECT` pins the task project. Printed commands include absolute paths. Invalid results do not advance; resume for the current prompt/ticket. A different active request refuses replacement; after DONE, an explicit `--request` starts a new run. Blocked means obtain the answer before continuing, not success.
+```text
+TASK: draft
 
-## Persistence and boundaries
+Design only; inspect within authority; never edit report-only targets. ...
+```
 
-- Current checkpoint: `.agents/decision.json` (schema 3). Final design: `.agents/artifacts/solution-design-<ticket>.md`.
-- The checkpoint is one phase-tagged snapshot with optional payload keys; completed state is compact (`schema_version`, `phase`, `ticket`) and the Markdown report holds the design, decisions and resolutions. Atomic writes, internal writer mutex and opaque tickets prevent competing CLI transitions. Corrupt state fails closed. Pending publication resumes idempotently; publication errors never print DONE.
-- **No agent write lock**, sandbox or tool interception. Scope reminders are advisory; unrelated tools remain usable.
-- Prompt jobs are not fresh model contexts. Review asks for subagent delegation; without one it proceeds locally and says so in `basis`.
-- Candidates carry decisions `{id, choice, basis, alternative, tradeoff, revisit}`; resolutions accumulate through active phases and are written into the final artifact. Validation checks shape only.
-- JSON validation checks structure/freshness, not evidence truth, request coverage or authorization. These remain agent responsibilities. Design completion does not claim implementation correctness or tests not run.
+Do the returned prompt; submit JSON through its printed command. Bare invocation resumes. Invalid results do not advance.
 
-Breaking changes: `new/show/record/finish`, revision/history APIs and ledger references are removed. Checkpoint schema 3 uses one `phase`, omits null/empty fields, derives the artifact name from the final ticket and compacts completed state; schema 1/2 or a checkpoint at the old `.agents/sbd-adaptive/run.json` location fails closed. Move `.agents/sbd-adaptive` aside once to start fresh. Legacy task files remain untouched. The original `simple-by-design` skill is unchanged.
+## Use
+
+Submit one JSON result:
+
+```json
+{"status":"candidate","summary":"Print Hello once.","criteria":["Prints exactly one line: Hello."],"decisions":[]}
+```
+
+A gap returns a targeted revise or resolve; a pass writes `.agents/artifacts/solution-design-<ticket>.md` and prints `DONE`. Checkpoint: `.agents/decision.json` (schema 3).
+
+## Limits
+
+Design only: prompts never authorize implementation or external effects. No agent write lock, sandbox, scope enforcement or tool interception. JSON validation checks shape and freshness, not truth, coverage or authorization. Corrupt or legacy state fails closed. Local review can share the author's blind spots. `DONE` completes the report, not its prerequisites. Passing fixtures do not prove better agent decisions.
 
 ## Verification
 
-```sh
+```bash
+mise run check
+# or
 python3 -m unittest discover -s tests -v
-mise run test # same suite under the pinned toolchain
 ```
 
-Tests cover routing, persistence, concurrency, publication recovery, policy disclosure and budgets: SKILL body ≤100 words; ordinary emitted static surface ≤400; domain-triggered guidance ≤350 (≤750 combined when fully read). Count repeated reading and calls in trials. The previous no-reference assertion now allows exactly `references/design.md`; no ledger returns.
-
-Fixtures test protocol/content, not agent behavior. Matched baseline/new trials must measure unnecessary questions, consequential errors, scope violations, witness quality and total instruction tokens/calls. Include delegated choices, unresolved goals/permissions, unsafe unknowns, conditional readiness, settled-but-defective Java conventions, instruction-only/nonsoftware, Python, TS/SQL and unlisted-language designs. More autonomy or the ≥70% procedural-token reduction target is not established by passing fixtures or word caps.
+Tests cover routing, persistence, concurrency, publication recovery, policy disclosure and budgets. Budget tests cap the SKILL body at 100 words, an ordinary prompt at 400 and guidance at 350. [Architecture](docs/architecture.md) records the invariants. [Design guidance](references/design.md) holds defaults and ten language profiles. [SKILL.md](SKILL.md) is the agent entry point.
