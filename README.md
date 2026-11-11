@@ -47,7 +47,7 @@ Submit one JSON result:
 {"status":"candidate","summary":"Print Hello once.","criteria":["Prints exactly one line: Hello."],"decisions":[]}
 ```
 
-A gap returns a targeted revise or resolve; a pass writes `.agents/artifacts/solution-design-<ticket>.md` and prints `DONE`. Checkpoint: `.agents/decision.json` (schema 3).
+A gap returns a targeted revise or resolve; a pass writes a summary and prints `DONE`. Checkpoint: `.agents/decision.json` (schema 3).
 
 ## Limits
 
