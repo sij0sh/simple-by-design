@@ -51,14 +51,14 @@ python3 "$S/scripts/sbd.py"
 
 ## Persistence and boundaries
 
-- Current checkpoint: `.agents/sbd-adaptive/run.json`. Final design: `.agents/artifacts/solution-design-<run-id>.md`.
-- Atomic writes, internal writer mutex and opaque tickets prevent competing CLI transitions. Corrupt state fails closed. Pending publication resumes idempotently; publication errors never print DONE.
+- Current checkpoint: `.agents/decision.json` (schema 3). Final design: `.agents/artifacts/solution-design-<ticket>.md`.
+- The checkpoint is one phase-tagged snapshot with optional payload keys; completed state is compact (`schema_version`, `phase`, `ticket`) and the Markdown report holds the design, decisions and resolutions. Atomic writes, internal writer mutex and opaque tickets prevent competing CLI transitions. Corrupt state fails closed. Pending publication resumes idempotently; publication errors never print DONE.
 - **No agent write lock**, sandbox or tool interception. Scope reminders are advisory; unrelated tools remain usable.
 - Prompt jobs are not fresh model contexts. Review asks for subagent delegation; without one it proceeds locally and says so in `basis`.
-- Candidates carry decisions `{id, choice, basis, alternative, tradeoff, revisit}`; resolutions accumulate across the run. Validation checks shape only.
+- Candidates carry decisions `{id, choice, basis, alternative, tradeoff, revisit}`; resolutions accumulate through active phases and are written into the final artifact. Validation checks shape only.
 - JSON validation checks structure/freshness, not evidence truth, request coverage or authorization. These remain agent responsibilities. Design completion does not claim implementation correctness or tests not run.
 
-Breaking changes: `new/show/record/finish`, revision/history APIs and ledger references are removed. Checkpoint schema 2 (structured candidate/review, accumulated resolutions) refuses schema 1 checkpoints; move `run.json` aside to start fresh. Legacy task files remain untouched. The original `simple-by-design` skill is unchanged.
+Breaking changes: `new/show/record/finish`, revision/history APIs and ledger references are removed. Checkpoint schema 3 uses one `phase`, omits null/empty fields, derives the artifact name from the final ticket and compacts completed state; schema 1/2 or a checkpoint at the old `.agents/sbd-adaptive/run.json` location fails closed. Move `.agents/sbd-adaptive` aside once to start fresh. Legacy task files remain untouched. The original `simple-by-design` skill is unchanged.
 
 ## Verification
 

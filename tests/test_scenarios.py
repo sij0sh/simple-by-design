@@ -32,15 +32,16 @@ class ScenarioFixtures(unittest.TestCase):
             state = store.start(request)
             for result in results:
                 state = store.submit(state['ticket'], result)
-            if state['status'] == 'complete':
-                state['text'] = (store.root / state['artifact']).read_text()
+            if state['phase'] == 'complete':
+                path = f".agents/artifacts/solution-design-{state['ticket']}.md"
+                state['text'] = (store.root / path).read_text()
             return state
 
     def test_trivial_task_without_decisions_passes_with_no_resolve(self):
         state = self.run_steps('Design a command printing Hello once.',
                                candidate('Single print.', ['Prints exactly one line: Hello.']), PASS)
-        self.assertEqual(state['status'], 'complete')
-        self.assertEqual(state['resolutions'], [])
+        self.assertEqual(state['phase'], 'complete')
+        self.assertNotIn('resolutions', state)
         self.assertIn('None consequential.', state['text'])
 
     def test_pair_witness_routes_intent_to_requester_then_passes(self):
@@ -50,7 +51,7 @@ class ScenarioFixtures(unittest.TestCase):
             {'status': 'blocked', 'question': 'Which language?', 'needs': 'Requester answer.'},
             {'status': 'resolved', 'answer': 'English.', 'basis': 'Requester said English.'},
             candidate('Print Hello.'), PASS)
-        self.assertEqual(state['status'], 'complete')
+        self.assertEqual(state['phase'], 'complete')
         self.assertIn('(intent) Which language? → English.', state['text'])
 
     def test_criteria_pass_while_goal_fails_forces_targeted_revise(self):
@@ -60,8 +61,8 @@ class ScenarioFixtures(unittest.TestCase):
             state = store.start('Design a cache that never serves stale prices.')
             state = store.submit(state['ticket'], weak)
             state = store.submit(state['ticket'], gap('defeater', 'A stale value also satisfies the criterion.'))
-            self.assertEqual(state['prompt'], 'draft')
-            self.assertEqual(state['feedback'][0]['decision'], 'D1')
+            self.assertEqual(state['phase'], 'draft')
+            self.assertEqual(state['gaps'][0]['decision'], 'D1')
             self.assertEqual(state['candidate'], {k: v for k, v in weak.items() if k != 'status'})
             with self.assertRaises(DispatchError):
                 store.submit(state['ticket'], PASS)  # Cannot approve a draft.
@@ -69,9 +70,9 @@ class ScenarioFixtures(unittest.TestCase):
                               ['No read returns a price older than its update interval.'],
                               [decision('D1', 'In-memory dict with TTL.')])
             state = store.submit(state['ticket'], fixed)
-            self.assertEqual(state['feedback'], [])
+            self.assertNotIn('gaps', state)
             state = store.submit(state['ticket'], PASS)
-            self.assertEqual(state['status'], 'complete')
+            self.assertEqual(state['phase'], 'complete')
 
     def test_decision_missing_alternative_is_rejected_structurally(self):
         with tempfile.TemporaryDirectory() as root:
@@ -96,9 +97,11 @@ class ScenarioFixtures(unittest.TestCase):
             {'status': 'resolved', 'answer': 'deferred: requester decides after trial.', 'basis': 'Requester deferred.'},
             candidate(conditional, ['Operator measurements gate D1; no paging before requester selects threshold.'], [diagnostic]),
             PASS)
-        self.assertEqual([r['type'] for r in state['resolutions']], ['fact', 'intent'])
+        self.assertNotIn('resolutions', state)
+        self.assertIn('(fact) Is packet loss observed?', state['text'])
+        self.assertIn('(intent) Alert threshold?', state['text'])
         self.assertIn('deferred: requester decides', state['text'])
-        self.assertIn('Conditional:', state['candidate']['summary'])
+        self.assertIn('Conditional:', state['text'])
 
     def test_engineering_means_and_delegated_tradeoff_need_no_approval_route(self):
         for request in ('Design a local Python report generator; follow project conventions.',
@@ -107,8 +110,8 @@ class ScenarioFixtures(unittest.TestCase):
                 choice = {**decision('D1', 'Smallest conventional in-scope option.'),
                           'basis': 'Request constraints/delegation; applicable project defaults.'}
                 state = self.run_steps(request, candidate('Choose within bounds.', decisions=[choice]), PASS)
-                self.assertEqual(state['status'], 'complete')
-                self.assertEqual(state['resolutions'], [])
+                self.assertEqual(state['phase'], 'complete')
+                self.assertNotIn('resolutions', state)
 
     def test_observed_fact_and_safe_provisional_fact_use_existing_resolution_fields(self):
         # Synthetic evidence/results exercise storage and routing, not real observations.
@@ -126,8 +129,9 @@ class ScenarioFixtures(unittest.TestCase):
                     {'status': 'resolved', 'answer': answer, 'basis': basis},
                     candidate('Prototype only; timeout basis remains provisional when unobserved.',
                               ['Test timing locally before any production commitment.'], [choice]), PASS)
-                self.assertEqual(state['resolutions'][0]['basis'], basis)
+                self.assertNotIn('resolutions', state)
                 self.assertIn(basis, state['text'])
+                self.assertIn('(fact) What timeout?', state['text'])
 
     def test_unsafe_missing_fact_blocks_ready_choice_without_artifact(self):
         state = self.run_steps(
@@ -135,8 +139,9 @@ class ScenarioFixtures(unittest.TestCase):
             need('fact', 'Is a restore-tested backup available?', 'No backup makes D1 destructive and unrecoverable.'),
             {'status': 'blocked', 'question': 'Is a restore-tested backup available?',
              'needs': 'Authorized operator must supply restore-test evidence before D1 can be ready.'})
-        self.assertEqual((state['status'], state['prompt']), ('blocked', 'resolve'))
-        self.assertEqual(state['artifact'], '')
+        self.assertEqual(state['phase'], 'blocked')
+        self.assertEqual(state['open']['type'], 'fact')
+        self.assertNotIn('artifact', state)
         self.assertNotIn('text', state)
 
     def test_unsettled_permission_blocks_instead_of_using_design_authority(self):
@@ -145,8 +150,8 @@ class ScenarioFixtures(unittest.TestCase):
             need('intent', 'May customer data leave the system?', 'External API and local processing differ in permission.'),
             {'status': 'blocked', 'question': 'May customer data leave the system?',
              'needs': 'Requester permission, not a convention or reversible engineering choice.'})
-        self.assertEqual(state['status'], 'blocked')
-        self.assertEqual(state['artifact'], '')
+        self.assertEqual(state['phase'], 'blocked')
+        self.assertNotIn('artifact', state)
 
     def test_settled_java_executor_choice_can_be_revised_for_unowned_work(self):
         weak = candidate('Use the existing executor.', decisions=[decision('D1', 'Follow executor convention.')])
@@ -159,8 +164,8 @@ class ScenarioFixtures(unittest.TestCase):
             'Design Java background work; the project executor choice is already settled.',
             weak, gap('defeater', 'Executor convention alone does not join work or observe failed futures.'),
             fixed, PASS)
-        self.assertEqual(state['status'], 'complete')
-        self.assertEqual(state['resolutions'], [])
+        self.assertEqual(state['phase'], 'complete')
+        self.assertNotIn('resolutions', state)
         self.assertIn('failures are observed', state['text'])
 
     def test_nonsoftware_instruction_design_uses_observable_rule(self):
@@ -168,8 +173,9 @@ class ScenarioFixtures(unittest.TestCase):
             'Design an agent instruction for report-only requests; no software architecture.',
             candidate('When request is report-only, return a report without modifying the target.',
                       ['For a report-only request, target bytes remain unchanged.']), PASS)
-        self.assertEqual(state['status'], 'complete')
-        self.assertEqual(state['candidate']['decisions'], [])
+        self.assertEqual(state['phase'], 'complete')
+        self.assertNotIn('candidate', state)
+        self.assertIn('None consequential.', state['text'])
         self.assertIn('target bytes remain unchanged', state['text'])
 
     def test_hidden_conditional_prerequisite_is_revised_into_summary_and_criteria(self):
@@ -184,10 +190,10 @@ class ScenarioFixtures(unittest.TestCase):
             'Design a conditional migration report; operator will verify backup readiness later.',
             weak, gap('defeater', 'An unmet prerequisite hidden in revisit lets a ready summary mislead.'),
             fixed, PASS)
-        self.assertEqual(state['status'], 'complete')
-        self.assertTrue(state['candidate']['summary'].startswith('Conditional:'))
+        self.assertEqual(state['phase'], 'complete')
+        self.assertNotIn('candidate', state)
         self.assertIn(gate, state['text'])
-        self.assertIn('no destructive step before it', state['candidate']['criteria'][0])
+        self.assertIn('no destructive step before it', state['text'])
 
     def test_deferred_intent_is_not_silently_selected_by_a_dependent_choice(self):
         state = self.run_steps(
@@ -196,7 +202,7 @@ class ScenarioFixtures(unittest.TestCase):
             gap('defeater', 'A conventional default silently selects explicitly deferred paging intent.'),
             candidate('Collect measurements only; no paging until requester chooses threshold.',
                       ['No paging configuration is enabled before requester decision.']), PASS)
-        self.assertEqual(state['resolutions'], [])
+        self.assertNotIn('resolutions', state)
         self.assertIn('no paging until requester chooses', state['text'])
 
 

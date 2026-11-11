@@ -11,6 +11,14 @@ from support import CLI, REQUEST, CANDIDATE, PASS, NEED, BLOCKED, RESOLVED, Disp
 from engine.state import decode
 
 
+def body(result):
+    return {key: value for key, value in result.items() if key != "status"}
+
+
+def artifact(root, state):
+    return root / f".agents/artifacts/solution-design-{state['ticket']}.md"
+
+
 class StateTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -24,24 +32,28 @@ class StateTests(unittest.TestCase):
         return self.store.submit(self.store.load()['ticket'], result)
 
     def test_start_resume_and_explicit_new_run_after_completion(self):
+        self.assertEqual(self.path, self.root / '.agents/decision.json')
         self.assertEqual(Store(self.root).resume(), self.initial)
         self.assertEqual(self.store.start(REQUEST), self.initial)
         before = self.path.read_bytes()
         with self.assertRaisesRegex(DispatchError, 'different request'):
             self.store.start('New request')
         self.assertEqual(self.path.read_bytes(), before)
-        self.submit(CANDIDATE)
+        review = self.submit(CANDIDATE)
         complete = self.submit(PASS)
+        self.assertEqual(complete, {'schema_version': 3, 'phase': 'complete',
+                                    'ticket': review['ticket']})
         self.assertEqual(Store(self.root).resume(), complete)
-        artifact = self.root / complete['artifact']
-        text = artifact.read_text()
+        path = artifact(self.root, complete)
+        text = path.read_text()
         for value in (CANDIDATE['summary'], CANDIDATE['decisions'][0]['alternative'], PASS['defeater']):
             self.assertIn(value, text)
         self.assertIn(REQUEST, text)
+        self.assertFalse((self.root / '.agents/sbd-adaptive').exists())
         new = self.store.start(REQUEST)  # Explicit --request is sufficient after DONE.
-        self.assertNotEqual(new['run_id'], complete['run_id'])
-        self.assertTrue(artifact.is_file())
-        with self.assertRaisesRegex(DispatchError, 'stale'):
+        self.assertNotEqual(new['ticket'], complete['ticket'])
+        self.assertTrue(path.is_file())
+        with self.assertRaisesRegex(DispatchError, 'duplicate'):
             self.store.submit(complete['ticket'], PASS)
         self.assertEqual(self.store.resume(), new)
 
@@ -58,16 +70,19 @@ class StateTests(unittest.TestCase):
         self.submit(PASS)
         self.assertEqual(legacy.read_text(), '{"events": ["old data"]}')
 
-    def test_blocked_resume_keeps_ticket_request_candidate_and_need(self):
+    def test_blocked_resume_keeps_ticket_request_candidate_and_open(self):
         review = self.submit(CANDIDATE)
         self.submit(NEED)
         blocked = self.submit(BLOCKED)
         self.assertEqual(Store(self.root).resume(), blocked)
         self.assertEqual(blocked['candidate'], review['candidate'])
+        self.assertEqual(blocked['open'], {**body(NEED), 'blocked_on': body(BLOCKED)})
         resolved = self.submit(RESOLVED)
         self.assertEqual(resolved['request'], REQUEST)
-        self.assertEqual(resolved['prompt'], 'draft')
+        self.assertEqual(resolved['phase'], 'draft')
         self.assertEqual(resolved['resolutions'][0]['answer'], 'Use English.')
+        self.assertEqual(resolved['candidate'], review['candidate'])
+        self.assertNotIn('open', resolved)
         with self.assertRaises(DispatchError):
             self.submit(PASS)
 
@@ -112,7 +127,7 @@ class StateTests(unittest.TestCase):
                 patch('engine.state.os.fsync', side_effect=fail_directory):
             with self.assertRaises(OSError):
                 self.submit(CANDIDATE)
-        self.assertEqual(self.store.resume()['prompt'], 'review')
+        self.assertEqual(self.store.resume()['phase'], 'review')
         with self.assertRaisesRegex(DispatchError, 'stale'):
             self.store.submit(self.initial['ticket'], CANDIDATE)
 
@@ -128,19 +143,19 @@ class StateTests(unittest.TestCase):
         with patch.object(self.store, '_atomic', side_effect=fail_artifact):
             with self.assertRaisesRegex(OSError, 'publication'):
                 self.submit(PASS)
-        self.assertEqual(self.store.load()['status'], 'publishing')
+        self.assertEqual(self.store.load()['phase'], 'publishing')
         with self.assertRaisesRegex(DispatchError, 'exact passing'):
             self.store.submit(review['ticket'], {**PASS, 'basis': 'different review'})
         complete = self.store.submit(review['ticket'], PASS)
-        self.assertEqual(complete['status'], 'complete')
-        self.assertTrue((self.root / complete['artifact']).exists())
+        self.assertEqual(complete['phase'], 'complete')
+        self.assertTrue(artifact(self.root, complete).exists())
 
     def test_crash_after_artifact_before_completion_recovers_on_bare_resume(self):
         self.submit(CANDIDATE)
         write = self.store._write
 
         def fail_complete(document):
-            if document['status'] == 'complete':
+            if document['phase'] == 'complete':
                 raise OSError('crash before completion checkpoint')
             return write(document)
 
@@ -148,10 +163,11 @@ class StateTests(unittest.TestCase):
             with self.assertRaises(OSError):
                 self.submit(PASS)
         pending = self.store.load()
-        self.assertEqual(pending['status'], 'publishing')
-        before = (self.root / pending['artifact']).read_bytes()
-        self.assertEqual(Store(self.root).resume()['status'], 'complete')
-        self.assertEqual((self.root / pending['artifact']).read_bytes(), before)
+        self.assertEqual(pending['phase'], 'publishing')
+        path = artifact(self.root, pending)
+        before = path.read_bytes()
+        self.assertEqual(Store(self.root).resume()['phase'], 'complete')
+        self.assertEqual(path.read_bytes(), before)
         self.assertEqual(len(list((self.root / '.agents/artifacts').glob('*.md'))), 1)
 
     def test_failure_after_artifact_replace_resyncs_before_completing(self):
@@ -172,20 +188,21 @@ class StateTests(unittest.TestCase):
 
     def test_existing_conflicting_artifact_is_never_overwritten(self):
         review = self.submit(CANDIDATE)
-        artifact = self.root / f".agents/artifacts/solution-design-{review['run_id']}.md"
-        artifact.parent.mkdir()
-        artifact.write_text('other content')
+        path = artifact(self.root, review)
+        path.parent.mkdir()
+        path.write_text('other content')
         with self.assertRaisesRegex(DispatchError, 'different content'):
             self.submit(PASS)
-        self.assertEqual(artifact.read_text(), 'other content')
-        self.assertEqual(self.store.load()['status'], 'publishing')
+        self.assertEqual(path.read_text(), 'other content')
+        self.assertEqual(self.store.load()['phase'], 'publishing')
 
     def test_corruption_fails_closed_for_reads_starts_and_submissions(self):
         valid = self.path.read_text()
-        bad_values = ['{', '[]', valid.replace('"schema_version": 2', '"schema_version": 999'),
-                      valid.replace('"schema_version": 2', '"schema_version": 2, "schema_version": 2'),
-                      valid.replace('"schema_version": 2', '"schema_version": NaN'),
-                      valid.replace('"prompt": "draft"', '"prompt": []')]
+        bad_values = ['{', '[]', valid.replace('"schema_version": 3', '"schema_version": 999'),
+                      valid.replace('"schema_version": 3', '"schema_version": 3, "schema_version": 3'),
+                      valid.replace('"schema_version": 3', '"schema_version": NaN'),
+                      valid.replace('"phase": "draft"', '"phase": []'),
+                      valid.replace('"schema_version": 3', '"schema_version": 2')]
         for raw in bad_values:
             self.path.write_text(raw)
             for action in (self.store.resume, lambda: self.store.start(REQUEST),
@@ -200,15 +217,13 @@ class StateTests(unittest.TestCase):
     def test_managed_symlink_ancestors_and_nonregular_targets_are_rejected(self):
         outside = self.root / 'outside'
         outside.mkdir()
-        for linked in ('.agents', '.agents/sbd-adaptive'):
-            root = self.root / ('project-' + linked.replace('/', '-'))
-            root.mkdir()
-            path = root / linked
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.symlink_to(outside, target_is_directory=True)
-            for action in (Store(root).resume, lambda: Store(root).start(REQUEST)):
-                with self.assertRaises(DispatchError):
-                    action()
+        root = self.root / 'project'
+        root.mkdir()
+        linked = root / '.agents'
+        linked.symlink_to(outside, target_is_directory=True)
+        for action in (Store(root).resume, lambda: Store(root).start(REQUEST)):
+            with self.assertRaises(DispatchError):
+                action()
         self.assertEqual(list(outside.iterdir()), [])
         target = self.root / 'outside-file'
         target.write_text('do not change')
@@ -226,7 +241,7 @@ class StateTests(unittest.TestCase):
     def test_lock_and_artifact_symlinks_rejected(self):
         target = self.root / 'outside-file'
         target.write_text('safe')
-        lock = self.path.parent / '.run.lock'
+        lock = self.path.parent / '.decision.lock'
         lock.unlink()
         lock.symlink_to(target)
         with self.assertRaises(OSError):
@@ -239,18 +254,18 @@ class StateTests(unittest.TestCase):
             self.submit(PASS)
         artifacts.unlink()
         artifacts.mkdir()
-        (artifacts / f"solution-design-{review['run_id']}.md").symlink_to(target)
+        artifact(self.root, review).symlink_to(target)
         with self.assertRaises(OSError):
             self.store.resume()
         self.assertEqual(target.read_text(), 'safe')
 
     def test_private_permissions_and_ignored_leftover_temporary(self):
         self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
-        (self.path.parent / '.run.dead.tmp').write_text('partial')
+        (self.path.parent / '.decision.dead.tmp').write_text('partial')
         self.assertEqual(self.store.resume(), self.initial)
         self.submit(CANDIDATE)
         complete = self.submit(PASS)
-        self.assertEqual((self.root / complete['artifact']).stat().st_mode & 0o777, 0o600)
+        self.assertEqual(artifact(self.root, complete).stat().st_mode & 0o777, 0o600)
 
     def test_created_directory_names_are_synced_even_on_retry(self):
         sync = self.store._sync_directory
@@ -265,12 +280,41 @@ class StateTests(unittest.TestCase):
     def test_concurrent_final_results_publish_exactly_once(self):
         self.submit(CANDIDATE)
         self.concurrent_submission(PASS)
-        self.assertEqual(self.store.resume()['status'], 'complete')
+        self.assertEqual(self.store.resume()['phase'], 'complete')
         self.assertEqual(len(list((self.root / '.agents/artifacts').glob('*.md'))), 1)
 
     def test_two_cli_writers_only_one_advances_the_ticket(self):
         self.concurrent_submission(CANDIDATE)
-        self.assertEqual(self.store.load()['prompt'], 'review')
+        self.assertEqual(self.store.load()['phase'], 'review')
+
+    def test_legacy_location_and_schema_fail_closed(self):
+        legacy_root = self.root / 'legacy-project'
+        legacy_dir = legacy_root / '.agents/sbd-adaptive'
+        legacy_dir.mkdir(parents=True)
+        legacy = legacy_dir / 'run.json'
+        legacy.write_text('{"schema_version": 2, "events": ["old"]}')
+        for action in (Store(legacy_root).resume,
+                       lambda: Store(legacy_root).start(REQUEST),
+                       lambda: Store(legacy_root).submit('anything', CANDIDATE)):
+            with self.assertRaisesRegex(DispatchError, 'legacy'):
+                action()
+        self.assertEqual(list(legacy_root.iterdir()), [legacy_root / '.agents'])
+        self.assertEqual(sorted(path.name for path in (legacy_root / '.agents').iterdir()),
+                         ['sbd-adaptive'])
+        self.assertEqual(legacy.read_text(), '{"schema_version": 2, "events": ["old"]}')
+
+        new = legacy_root / '.agents/decision.json'
+        new.write_text(json.dumps({'schema_version': 3, 'phase': 'complete',
+                                   'ticket': 'a' * 32}))
+        self.assertEqual(Store(legacy_root).resume()['phase'], 'complete')
+        self.assertEqual(new.read_text(), json.dumps({'schema_version': 3, 'phase': 'complete',
+                                                       'ticket': 'a' * 32}))
+        self.assertEqual(legacy.read_text(), '{"schema_version": 2, "events": ["old"]}')
+
+        new.write_text(json.dumps({'schema_version': 2, 'phase': 'draft',
+                                   'ticket': 'a' * 32, 'request': REQUEST}))
+        with self.assertRaisesRegex(DispatchError, 'legacy'):
+            Store(legacy_root).resume()
 
     def concurrent_submission(self, result):
         ticket = self.store.load()['ticket']
@@ -290,7 +334,7 @@ class StateTests(unittest.TestCase):
     def test_lock_timeout_and_process_death_release(self):
         code = ("import fcntl,sys,time; f=open(sys.argv[1], 'r+'); "
                 "fcntl.flock(f,fcntl.LOCK_EX); print('locked',flush=True); time.sleep(60)")
-        process = subprocess.Popen([sys.executable, '-c', code, str(self.path.parent / '.run.lock')],
+        process = subprocess.Popen([sys.executable, '-c', code, str(self.path.parent / '.decision.lock')],
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         try:
             self.assertEqual(process.stdout.readline().strip(), 'locked')
@@ -298,7 +342,7 @@ class StateTests(unittest.TestCase):
                 Store(self.root, lock_timeout=0.05).submit(self.initial['ticket'], CANDIDATE)
             process.kill()
             process.communicate(timeout=5)
-            self.assertEqual(Store(self.root, lock_timeout=0.2).submit(self.initial['ticket'], CANDIDATE)['prompt'], 'review')
+            self.assertEqual(Store(self.root, lock_timeout=0.2).submit(self.initial['ticket'], CANDIDATE)['phase'], 'review')
         finally:
             if process.poll() is None:
                 process.kill()

@@ -53,7 +53,7 @@ class PromptTests(unittest.TestCase):
                         'Design seating for a wedding; no software or agent instructions.'):
             draft = router.new(request)
             for state in (draft, router.advance(draft, CANDIDATE)):
-                with self.subTest(request=request, prompt=state['prompt']):
+                with self.subTest(request=request, prompt=state['phase']):
                     output = render(state, CLI, Path('/unrelated/task'))
                     self.assertIn(json.dumps(str(GUIDANCE_PATH)), output)
                     self.assertIn('software—common/relevant language rows even for settled choices', output)
@@ -86,7 +86,7 @@ class PromptTests(unittest.TestCase):
             command = [sys.executable, str(skill / 'scripts/sbd.py'), '--root', str(project)]
             first = subprocess.run(command + ['--request', REQUEST], cwd='/',
                                    capture_output=True, text=True, check=True)
-            checkpoint = json.loads((project / '.agents/sbd-adaptive/run.json').read_text())
+            checkpoint = json.loads((project / '.agents/decision.json').read_text())
             second = subprocess.run(command + ['done', checkpoint['ticket']], cwd='/',
                                     input=json.dumps(CANDIDATE), capture_output=True,
                                     text=True, check=True)

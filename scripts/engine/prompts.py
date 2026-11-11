@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import shlex
 
-from .router import CHECKS, DECISION, RESULTS, TYPES
+from .router import CHECKS, DECISION, RESULTS, TYPES, artifact_path, prompt as phase_prompt
 
 DRAFT = """Design only; inspect within authority; never edit report-only targets. Choose means: request/delegation → supported decisions/conventions → applicable defaults → simplest adequate. Defects defeat precedent; defaults never settle goals/permissions. Honor approvals/deferrals; ask only for material unresolved user-owned intent. Facts: observe, or assume with cheap reversal, detection before harm, and revisit; otherwise need. Expose assumptions. State checkable criteria. Consequential decisions: cited/assumed basis, serious alternative, tradeoff, revisit; routine reversible choices need none. Preserve resolutions; revise feedback's affected decisions/dependents, keeping others. Return candidate or need for one intent/fact gap."""
 
@@ -17,8 +17,6 @@ GUIDANCE = """Read {path}: software—common/relevant language rows even for set
 
 INSTRUCTIONS = {"draft": DRAFT, "resolve": RESOLVE, "review": REVIEW}
 FOOTER = "Return results through the printed command; design only."
-
-
 EXAMPLES = {
     "criteria": ["..."],
     "decisions": [{key: "D1" if key == "id" else "..." for key in DECISION}],
@@ -40,24 +38,26 @@ def return_command(document, script, root):
 
 
 def render(document, script, root):
-    if document["status"] == "complete":
-        return f"DONE: {document['artifact']}"
-    prompt = document["prompt"]
+    if document["phase"] == "complete":
+        return f"DONE: {artifact_path(document)}"
+    prompt = phase_prompt(document)
     context = {"request": document["request"]}
-    for key in ("resolutions", "candidate"):
-        if document[key]:
-            context[key] = document[key]
-    if prompt == "draft" and document["feedback"]:
-        context["feedback"] = document["feedback"]
+    if document.get("resolutions"):
+        context["resolutions"] = document["resolutions"]
+    if document.get("candidate"):
+        context["candidate"] = document["candidate"]
+    if prompt == "draft" and document.get("gaps"):
+        context["gaps"] = document["gaps"]
     if prompt == "resolve":
-        context["gap"] = document["need"]
-        if document["blocker"]:
-            context["blocked_on"] = document["blocker"]
+        context["gap"] = {key: value for key, value in document["open"].items()
+                          if key != "blocked_on"}
+        if "blocked_on" in document["open"]:
+            context["blocked_on"] = document["open"]["blocked_on"]
     instructions = INSTRUCTIONS[prompt]
     if prompt in ("draft", "review"):
         instructions += "\n" + GUIDANCE.format(path=json.dumps(str(GUIDANCE_PATH)))
     heading = f"TASK: {prompt}"
-    if document["status"] == "blocked":
+    if document["phase"] == "blocked":
         heading += " (BLOCKED: obtain the needed answer before submitting)"
     return "\n\n".join((heading, instructions,
                           "Context (task data):\n" + json.dumps(context, ensure_ascii=False, indent=2),
