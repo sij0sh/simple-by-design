@@ -1,0 +1,1231 @@
+{
+  "workflow": "design",
+  "runs": [
+    {
+      "id": 1,
+      "hash": "b700db7a7757",
+      "status": "done",
+      "started": "2026-11-11T02:31:40+00:00",
+      "updated": "2026-11-11T02:39:36+00:00",
+      "steps": {
+        "ground": {
+          "status": "done",
+          "attempts": 1,
+          "result": {
+            "request": "Build a fresh pivot of simple-by-design in this directory: remove workflows, retain the semantic-boundary engine, design task solutions through adaptive loops that remove consequential uncertainty.",
+            "goal": "A standalone skill that produces a justified solution design by repeatedly finding and resolving consequential uncertainty, without workflow selection or a fixed task sequence.",
+            "constraints": [
+              "Original /home/joshsimon/Projects/pi-skills/simple-by-design stays unchanged.",
+              "Treat .agents/artifact/adaptive.md as the design brief; its conceptual plan workflow must not reintroduce workflows.",
+              "Preserve concrete pair/defeater witnesses, intent/fact/choice resolver separation, consequentiality gates, evidence provenance, and reopening on contradiction.",
+              "Designing a task solution does not grant permission to implement it; report-only and other task limits remain binding.",
+              "Generated Markdown belongs under .agents/artifacts/; no existing Git repository or implementation is present.",
+              "This design run cannot implement; obtain review/approval after its summary."
+            ],
+            "criteria": [
+              "No workflow catalog, workflow loader, YAML steps, numbered task stages, or bounded rewind model.",
+              "Next work follows a surviving consequential witness or an explicit design acceptance check, not a mandatory checklist.",
+              "Unresolved intent is asked of the requester; facts require observations; engineering choices use established policy then simplest adequate design.",
+              "Durable state preserves questions, evidence, decisions, dependencies and revision history across interruption; unresolved blockers cannot be reported as complete.",
+              "Acceptance includes concrete counterexamples covering wrong resolver, weak criteria, revoked assumptions, false completion, scope violations, deferral, and resumption.",
+              "A straightforward unambiguous task can finish without manufactured questions or unnecessary cycles."
+            ]
+          },
+          "feedback": []
+        },
+        "branch": {
+          "status": "done",
+          "attempts": 2,
+          "result": {
+            "questions": [
+              {
+                "id": "D7",
+                "question": "Which revision does a recorded evaluation certify, given that recording it changes the event-log revision?",
+                "type": "choice",
+                "witness": "If current revision includes the evaluation event, each evaluation is instantly stale; accepting any earlier revision permits obsolete review to justify a changed design.",
+                "after": [
+                  "D3",
+                  "D5"
+                ]
+              },
+              {
+                "id": "D8",
+                "question": "How does contradictory evidence after completion reopen the same task without erasing history or expanding authority?",
+                "type": "choice",
+                "witness": "A terminal complete flag can reject needed reopening; unrestricted later edits can preserve a now-unjustified complete status or silently turn the design task into new work.",
+                "after": [
+                  "D2",
+                  "D4",
+                  "D5"
+                ]
+              }
+            ]
+          },
+          "feedback": [],
+          "previous": {
+            "questions": [
+              {
+                "id": "D1",
+                "question": "Which existing behavior is the semantic-boundary engine, and which code is workflow orchestration?",
+                "type": "fact",
+                "witness": "Copying the Python runner retains workflow selection and bounded rewind; retaining only prose without its resolver and reopening rules loses consequential-boundary behavior.",
+                "after": []
+              },
+              {
+                "id": "D2",
+                "question": "What outcome and authority should the new adaptive loop have?",
+                "type": "choice",
+                "witness": "A solution-design loop and an implementation executor can both resemble the artifact, but the latter can edit task files before the user has authorized implementation.",
+                "after": [
+                  "D1"
+                ]
+              },
+              {
+                "id": "D3",
+                "question": "What is the smallest durable runtime that supports adaptive questions without becoming another workflow engine?",
+                "type": "choice",
+                "witness": "A single fixed plan workflow still prescribes task stages; an entirely transient prompt cannot preserve unresolved questions or evidence after interruption.",
+                "after": [
+                  "D1",
+                  "D2"
+                ]
+              },
+              {
+                "id": "D4",
+                "question": "How are questions settled, deferred, reopened, and invalidated without washing away evidence?",
+                "type": "choice",
+                "witness": "Latest-result overwrite can hide contradictions; marking an intent question resolved with the agent's guess can make an unsupported design appear complete.",
+                "after": [
+                  "D3"
+                ]
+              },
+              {
+                "id": "D5",
+                "question": "What controls completion, independent evaluation, and unproductive loops?",
+                "type": "choice",
+                "witness": "An empty question ledger can pass despite weak criteria or unexamined assumptions; a fixed retry cap can label unfinished work complete; evaluator absence can masquerade as independent review.",
+                "after": [
+                  "D2",
+                  "D4"
+                ]
+              },
+              {
+                "id": "D6",
+                "question": "What evidence would demonstrate that the pivot preserves semantic behavior instead of only passing structural state tests?",
+                "type": "choice",
+                "witness": "A CLI can reject malformed JSON while its instructions still cause fabricated intent, needless questions, or scope violations.",
+                "after": [
+                  "D1",
+                  "D5"
+                ]
+              }
+            ]
+          }
+        },
+        "decide": {
+          "status": "done",
+          "attempts": 2,
+          "result": {
+            "goal": "Build a standalone adaptive solution-design skill: discover and remove consequential uncertainty without workflow selection or a fixed task sequence.",
+            "constraints": [
+              "Original skill unchanged; greenfield implementation in this directory.",
+              "Retain semantic boundaries, not the old YAML runner.",
+              "Design-only authority: observation and planning do not authorize implementation of the user's task.",
+              "Evidence provenance, history, dependency invalidation and approval boundaries survive interruption.",
+              "No generated Markdown outside .agents/artifacts/ during this design run.",
+              "Implementation follows review/approval; no implementation has been performed."
+            ],
+            "criteria": [
+              "No workflow definitions, catalog, step scheduler, mandatory question checklist or bounded rewind.",
+              "The next operation is justified by a consequential witness or a missing design acceptance check; simple tasks permit zero questions.",
+              "Intent, fact and choice use their own resolvers; unsupported claims remain assumptions, not established facts.",
+              "Append-only logical history, atomic writes and revision checks prevent silent overwrite and stale completion.",
+              "Completion distinguishes solution-design readiness from implementation correctness, records evaluator independence honestly, and rejects unresolved required gaps or stale checks.",
+              "Tests cover persistence and semantic scenarios separately; agent-behavior improvement is not inferred from schema tests."
+            ],
+            "decisions": [
+              {
+                "id": "D1",
+                "question": "What is the semantic-boundary engine?",
+                "answer": "Preserve the reasoning contract in references/ambiguity.md: concrete pair or defeater; materiality gate; intent/fact/choice resolver separation; cheap reversible fact/choice assumptions with revisit conditions; reopen affected work on contradiction. references/instructions.md governs instruction minimality. The Python loader/runner/session is replaceable workflow orchestration, not that semantic engine.",
+                "after": [],
+                "rationale": "The observed source explicitly separates the reasoning reference from workflow ordering and persistence.",
+                "evidence": [
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/ambiguity.md",
+                    "kind": "observed",
+                    "shows": "Witness forms, resolver types, gate, reopening."
+                  },
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/instructions.md",
+                    "kind": "observed",
+                    "shows": "Minimal observable behavioral contracts."
+                  },
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/docs/architecture.md; commit 187cd49625fd3510bce75610e1df11d43071f1fd",
+                    "kind": "documented",
+                    "shows": "The old runtime schedules declarative workflows."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "Copy the existing runtime",
+                    "rejected_because": "Retains the workflow abstraction explicitly being removed."
+                  }
+                ],
+                "tradeoff": "Semantic judgments remain agent responsibilities; code cannot prove that a witness is plausible or an observation is true.",
+                "revisit": "A concrete preserved semantic rule is found to require runtime behavior not captured by the new contract."
+              },
+              {
+                "id": "D2",
+                "question": "What outcome and authority does the loop have?",
+                "answer": "Produce a justified solution design with goal, constraints, evidence, decisions, open issues and a verification plan. Inspect or experiment only within task permissions. Do not implement the designed solution, deploy, or perform destructive actions. The user's wording settles design scope; broader execution remains separate authorization, not an agent-selected default.",
+                "after": [
+                  "D1"
+                ],
+                "rationale": "The current request explicitly says to use the engine for designing the solution to the task.",
+                "evidence": [
+                  {
+                    "ref": "Current user request: 'use for designing the solution to the task through adaptive loops'",
+                    "kind": "documented",
+                    "shows": "Design is the requested skill outcome."
+                  },
+                  {
+                    "ref": ".agents/artifact/adaptive.md sections 5 and 7",
+                    "kind": "documented",
+                    "shows": "Respect permissions and distinguish progress from justified completion."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "General autonomous implementation executor",
+                    "rejected_because": "Not authorized by the stated design scope and unnecessary to establish the pivot."
+                  }
+                ],
+                "tradeoff": "The skill will hand off an implementation plan rather than execute it; future approved execution can reuse the reasoning contract.",
+                "revisit": "The user explicitly requests an implementation-executing skill."
+              },
+              {
+                "id": "D3",
+                "question": "What is the smallest durable runtime?",
+                "answer": "Use a stdlib-only Python CLI with new/show/record/finish operations and per-task state at .agents/sbd-adaptive/<task-id>.json. The agent chooses the next warranted observation, clarification, decision or design update; no stages are scheduled. Separate CLI adaptation, pure ledger validation/projection, and atomic persistence. Each state document holds schema version plus an ordered immutable event history; derive the current view rather than storing a second authoritative ledger. Writers lock, require an expected revision, validate before append and atomically replace the document. Task IDs cannot escape the state directory. No automatic restart or cross-task inheritance.",
+                "after": [
+                  "D1",
+                  "D2"
+                ],
+                "rationale": "The brief requires interruption-safe history, while the explicit pivot removes predefined processes. The smallest runtime stores and validates facts about progress without choosing cognitive work.",
+                "evidence": [
+                  {
+                    "ref": ".agents/artifact/adaptive.md sections 1, 4 and 6",
+                    "kind": "documented",
+                    "shows": "Adaptive next work, persistent question ledger, history rather than overwrite."
+                  },
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/defaults.md",
+                    "kind": "documented",
+                    "shows": "One owner, plain data and explicit boundaries."
+                  },
+                  {
+                    "ref": "Current design inference",
+                    "kind": "inferred",
+                    "shows": "A revisioned JSON event document is adequate for local CLI-scale sessions without a database or generic scheduler."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "One fixed plan workflow",
+                    "rejected_because": "Renames rather than removes the workflow abstraction."
+                  },
+                  {
+                    "option": "Prompt-only transient state",
+                    "rejected_because": "Does not preserve question/evidence history across context loss."
+                  },
+                  {
+                    "option": "Database or general DAG executor",
+                    "rejected_because": "No demonstrated need beyond a local ledger and dependency references."
+                  }
+                ],
+                "tradeoff": "The small runtime checks structure and freshness, not semantic truth; the JSON document is rewritten atomically even though its logical history is append-only.",
+                "revisit": "Measured task-state scale or a real multi-writer use case makes the single-document approach inadequate."
+              },
+              {
+                "id": "D4",
+                "question": "How do uncertainty and evidence evolve?",
+                "answer": "Questions contain stable id, text, intent/fact/choice type, structured witness, consequence, dependencies, resolver and next resolving action. Record observations, answers, provisional choices, deferrals, contradictions and design revisions as new events. Intent answers cite the requester or authoritative requester documents; fact answers cite observations; choice answers cite policy/source precedence and rationale, with viable alternatives, tradeoff and revisit when consequential. Inference/unknown never become observed evidence by relabeling a status. Provisional fact/choice answers require cheap reversal, detectability and a revisit condition. Deferral names its boundary, owner/reason and trigger; it cannot hide a requirement for the current design. Reopening or replacing relied-on evidence/answers transitively invalidates dependent answers, design checks and evaluations. History remains available.",
+                "after": [
+                  "D3"
+                ],
+                "rationale": "A question's status is not evidence. Dependency invalidation and typed resolution preserve the old engine's core distinctions through adaptive cycles.",
+                "evidence": [
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/ambiguity.md",
+                    "kind": "observed",
+                    "shows": "Resolver separation, reversible assumptions, dependency reopening."
+                  },
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/decisions.md",
+                    "kind": "observed",
+                    "shows": "Evidence provenance, established versus assumed basis, consequential decision metadata."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "Latest answer wins without dependency invalidation",
+                    "rejected_because": "Leaves downstream conclusions apparently valid after their basis changes."
+                  },
+                  {
+                    "option": "Treat every open issue as a blocker",
+                    "rejected_because": "Discards legitimate implementation freedom and safe explicit deferral."
+                  }
+                ],
+                "tradeoff": "Record only relied-on dependencies and consequential questions; irrelevant uncertainty is not made into mandatory ledger work. Runtime validates claimed provenance structure but cannot authenticate it.",
+                "revisit": "Behavioral evaluation finds a material wrong-resolver resolution, hidden deferral or missed dependent reopening."
+              },
+              {
+                "id": "D5",
+                "question": "What makes the evaluator and termination trustworthy?",
+                "answer": "Evaluate the current request, permissions, evidence, decisions and candidate design, not merely the planner's narrative or the open-question count. Return only concrete surviving pairs, defeaters or failed required checks; separate discovery from answering. Questions about goal, assumptions, alternatives, authority, evidence and omissions are optional probes, not six mandatory stages. Before completion require a current candidate design, all required design acceptance checks supported, no unresolved required question, valid dependencies and a challenge tied to the exact pre-completion snapshot, atomically accepted with completion as specified in D7. A fresh independent reviewer reads an immutable state snapshot when available; otherwise record local-only evaluation explicitly, never claim independence, and block if independent review is required. When no authorized action can obtain progress, pause as blocked with the needed resolver; never convert a retry/token limit into success.",
+                "after": [
+                  "D2",
+                  "D4"
+                ],
+                "rationale": "The brief explicitly distinguishes an independent evaluator from proof and requires observable justification and permission compliance.",
+                "evidence": [
+                  {
+                    "ref": ".agents/artifact/adaptive.md sections 2, 5 and 7",
+                    "kind": "documented",
+                    "shows": "Optional evaluation questions, independent challenge, acceptance evidence, no manufactured uncertainty."
+                  },
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/instructions.md",
+                    "kind": "documented",
+                    "shows": "Only add instructions that change identifiable decisions."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "Finish when the question ledger is empty",
+                    "rejected_because": "Cannot detect bad criteria, omissions or unsupported success."
+                  },
+                  {
+                    "option": "A fixed stage pipeline with a retry cap",
+                    "rejected_because": "Adds mandatory process and can report unfinished work as complete."
+                  },
+                  {
+                    "option": "Always require a subagent even where unavailable",
+                    "rejected_because": "Makes a harness-independent skill unusable; explicit local assurance is honest unless independence is a task requirement."
+                  }
+                ],
+                "tradeoff": "The evaluator supplies bounded assurance, not proof of completeness. Design-complete never claims future implementation correctness or tests not executed.",
+                "revisit": "A concrete task can falsely complete despite an unresolved required witness, stale evaluation, or required independence being absent."
+              },
+              {
+                "id": "D6",
+                "question": "How will the pivot be evaluated?",
+                "answer": "Separate deterministic ledger tests from agent-behavior evaluation. Test schema rejection, resolver/evidence shape, IDs, dependencies/cycles, reopen propagation, safe deferral, stale evaluations, expected revisions, locking, atomic write failure, corrupt state, CLI resume, history and completion refusal. Add semantic cases for feature design, behavior-preserving refactor, intermittent incident investigation, architectural tradeoff, security evidence, clarification-only tasks and precise negative controls. For each record the witness, chosen resolver, action/decision changed, unnecessary questions, scope compliance and assurance limit. Use at least one held-out task; do not claim behavioral improvement from fixtures or unexecuted evaluations. Port only evidence policies a concrete scenario needs, not five domain workflows or a language-reference catalog.",
+                "after": [
+                  "D1",
+                  "D5"
+                ],
+                "rationale": "Structural validation cannot demonstrate that the instruction changes real agent decisions, and unambiguous tasks must not pay for unnecessary loops.",
+                "evidence": [
+                  {
+                    "ref": ".agents/artifact/adaptive.md sections 3, 5, 6 and 7",
+                    "kind": "documented",
+                    "shows": "Retain evidence standards, test comparison quality and cost, avoid forced questions."
+                  },
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/instructions.md",
+                    "kind": "documented",
+                    "shows": "Observable behavioral outcomes and unfamiliar-case robustness."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "Unit tests alone establish semantic preservation",
+                    "rejected_because": "They can validate state while instructions still encourage unsupported decisions."
+                  },
+                  {
+                    "option": "Port all old references and task prompts",
+                    "rejected_because": "Adds unproven process and hides the greenfield pivot under old workflow content."
+                  }
+                ],
+                "tradeoff": "A first release can establish deterministic correctness and report limited behavioral evidence; it must not claim universal completeness or full legacy-workflow equivalence.",
+                "revisit": "A held-out case finds a distinct consequential failure not caught by the current semantic contract."
+              },
+              {
+                "id": "D7",
+                "question": "Which revision does final evaluation certify?",
+                "answer": "The evaluator certifies the immutable ledger snapshot at revision R. finish --at R accepts that evaluation and appends its completion record together in one locked atomic transition only while the ledger head is still R. The resulting event is R+1 and explicitly certifies its parent R; it does not require evaluating itself. Any intervening record makes the submission stale. Non-final evaluation findings may be recorded normally, but cannot be reused to finish a later revision.",
+                "after": [
+                  "D3",
+                  "D5"
+                ],
+                "rationale": "One expected revision and a combined final-evaluation/completion event avoids both a self-invalidating review and stale-review acceptance.",
+                "evidence": [
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/defaults.md",
+                    "kind": "documented",
+                    "shows": "Prefer the smallest conventional adequate solution and one state owner."
+                  },
+                  {
+                    "ref": "Inline challenge counterexample, design run 1 attempt 1",
+                    "kind": "inferred",
+                    "shows": "Appending a separate evaluation changes the head revision; an atomic parent-revision contract removes the ambiguity."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "Separate content and metadata revision counters",
+                    "rejected_because": "Adds another invalidation concept without a present need."
+                  },
+                  {
+                    "option": "Accept an evaluation of any earlier revision",
+                    "rejected_because": "Permits obsolete evidence to justify a changed design."
+                  }
+                ],
+                "tradeoff": "An unrelated intervening ledger record also requires re-evaluation; conservative freshness is preferable to extra version machinery at this scale.",
+                "revisit": "Measured re-evaluation cost demonstrates a need to distinguish substantive changes from annotations."
+              },
+              {
+                "id": "D8",
+                "question": "How does new evidence reopen a completed task?",
+                "answer": "After completion, reject ordinary mutations until an explicit reopen event cites the contradictory observation or reached revisit condition and names affected records. Append that event to the same history, invalidate affected dependents and prior completion, and return the same original design request to active status. Prior completion remains historical, never erased. Reopening grants no new authority. A materially different goal is a new task; changed intent or permissions must be sourced to the requester rather than inferred from reopening.",
+                "after": [
+                  "D2",
+                  "D4",
+                  "D5"
+                ],
+                "rationale": "Revisiting a justified decision is distinct from silently modifying completed work or restarting a request.",
+                "evidence": [
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/ambiguity.md",
+                    "kind": "observed",
+                    "shows": "Reopen affected work on contradiction or revisit condition."
+                  },
+                  {
+                    "ref": ".agents/artifact/adaptive.md section 4",
+                    "kind": "documented",
+                    "shows": "Preserve history instead of overwriting retries."
+                  },
+                  {
+                    "ref": "Current design inference",
+                    "kind": "inferred",
+                    "shows": "An explicit reopening event is sufficient without a restart mechanism."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "Completed tasks are permanently immutable",
+                    "rejected_because": "Cannot honor reopening when relied-on evidence is contradicted."
+                  },
+                  {
+                    "option": "Allow ordinary edits while preserving complete status",
+                    "rejected_because": "Completion may outlive its evidence or conceal scope expansion."
+                  }
+                ],
+                "tradeoff": "Reopening requires an explicit causal record; it preserves auditability without promising that all external contradictions can be detected automatically.",
+                "revisit": "A real scope revision cannot be represented safely as either a requester-sourced revision or a separate task."
+              }
+            ]
+          },
+          "feedback": [],
+          "previous": {
+            "goal": "Build a standalone adaptive solution-design skill: discover and remove consequential uncertainty without workflow selection or a fixed task sequence.",
+            "constraints": [
+              "Original skill unchanged; greenfield implementation in this directory.",
+              "Retain semantic boundaries, not the old YAML runner.",
+              "Design-only authority: observation and planning do not authorize implementation of the user's task.",
+              "Evidence provenance, history, dependency invalidation and approval boundaries survive interruption.",
+              "No generated Markdown outside .agents/artifacts/ during this design run.",
+              "Implementation follows review/approval; no implementation has been performed."
+            ],
+            "criteria": [
+              "No workflow definitions, catalog, step scheduler, mandatory question checklist or bounded rewind.",
+              "The next operation is justified by a consequential witness or a missing design acceptance check; simple tasks permit zero questions.",
+              "Intent, fact and choice use their own resolvers; unsupported claims remain assumptions, not established facts.",
+              "Append-only logical history, atomic writes and revision checks prevent silent overwrite and stale completion.",
+              "Completion distinguishes solution-design readiness from implementation correctness, records evaluator independence honestly, and rejects unresolved required gaps or stale checks.",
+              "Tests cover persistence and semantic scenarios separately; agent-behavior improvement is not inferred from schema tests."
+            ],
+            "decisions": [
+              {
+                "id": "D1",
+                "question": "What is the semantic-boundary engine?",
+                "answer": "Preserve the reasoning contract in references/ambiguity.md: concrete pair or defeater; materiality gate; intent/fact/choice resolver separation; cheap reversible fact/choice assumptions with revisit conditions; reopen affected work on contradiction. references/instructions.md governs instruction minimality. The Python loader/runner/session is replaceable workflow orchestration, not that semantic engine.",
+                "after": [],
+                "rationale": "The observed source explicitly separates the reasoning reference from workflow ordering and persistence.",
+                "evidence": [
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/ambiguity.md",
+                    "kind": "observed",
+                    "shows": "Witness forms, resolver types, gate, reopening."
+                  },
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/instructions.md",
+                    "kind": "observed",
+                    "shows": "Minimal observable behavioral contracts."
+                  },
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/docs/architecture.md; commit 187cd49625fd3510bce75610e1df11d43071f1fd",
+                    "kind": "documented",
+                    "shows": "The old runtime schedules declarative workflows."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "Copy the existing runtime",
+                    "rejected_because": "Retains the workflow abstraction explicitly being removed."
+                  }
+                ],
+                "tradeoff": "Semantic judgments remain agent responsibilities; code cannot prove that a witness is plausible or an observation is true.",
+                "revisit": "A concrete preserved semantic rule is found to require runtime behavior not captured by the new contract."
+              },
+              {
+                "id": "D2",
+                "question": "What outcome and authority does the loop have?",
+                "answer": "Produce a justified solution design with goal, constraints, evidence, decisions, open issues and a verification plan. Inspect or experiment only within task permissions. Do not implement the designed solution, deploy, or perform destructive actions. The user's wording settles design scope; broader execution remains separate authorization, not an agent-selected default.",
+                "after": [
+                  "D1"
+                ],
+                "rationale": "The current request explicitly says to use the engine for designing the solution to the task.",
+                "evidence": [
+                  {
+                    "ref": "Current user request: 'use for designing the solution to the task through adaptive loops'",
+                    "kind": "documented",
+                    "shows": "Design is the requested skill outcome."
+                  },
+                  {
+                    "ref": ".agents/artifact/adaptive.md sections 5 and 7",
+                    "kind": "documented",
+                    "shows": "Respect permissions and distinguish progress from justified completion."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "General autonomous implementation executor",
+                    "rejected_because": "Not authorized by the stated design scope and unnecessary to establish the pivot."
+                  }
+                ],
+                "tradeoff": "The skill will hand off an implementation plan rather than execute it; future approved execution can reuse the reasoning contract.",
+                "revisit": "The user explicitly requests an implementation-executing skill."
+              },
+              {
+                "id": "D3",
+                "question": "What is the smallest durable runtime?",
+                "answer": "Use a stdlib-only Python CLI with new/show/record/finish operations and per-task state at .agents/sbd-adaptive/<task-id>.json. The agent chooses the next warranted observation, clarification, decision or design update; no stages are scheduled. Separate CLI adaptation, pure ledger validation/projection, and atomic persistence. Each state document holds schema version plus an ordered immutable event history; derive the current view rather than storing a second authoritative ledger. Writers lock, require an expected revision, validate before append and atomically replace the document. Task IDs cannot escape the state directory. No automatic restart or cross-task inheritance.",
+                "after": [
+                  "D1",
+                  "D2"
+                ],
+                "rationale": "The brief requires interruption-safe history, while the explicit pivot removes predefined processes. The smallest runtime stores and validates facts about progress without choosing cognitive work.",
+                "evidence": [
+                  {
+                    "ref": ".agents/artifact/adaptive.md sections 1, 4 and 6",
+                    "kind": "documented",
+                    "shows": "Adaptive next work, persistent question ledger, history rather than overwrite."
+                  },
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/defaults.md",
+                    "kind": "documented",
+                    "shows": "One owner, plain data and explicit boundaries."
+                  },
+                  {
+                    "ref": "Current design inference",
+                    "kind": "inferred",
+                    "shows": "A revisioned JSON event document is adequate for local CLI-scale sessions without a database or generic scheduler."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "One fixed plan workflow",
+                    "rejected_because": "Renames rather than removes the workflow abstraction."
+                  },
+                  {
+                    "option": "Prompt-only transient state",
+                    "rejected_because": "Does not preserve question/evidence history across context loss."
+                  },
+                  {
+                    "option": "Database or general DAG executor",
+                    "rejected_because": "No demonstrated need beyond a local ledger and dependency references."
+                  }
+                ],
+                "tradeoff": "The small runtime checks structure and freshness, not semantic truth; the JSON document is rewritten atomically even though its logical history is append-only.",
+                "revisit": "Measured task-state scale or a real multi-writer use case makes the single-document approach inadequate."
+              },
+              {
+                "id": "D4",
+                "question": "How do uncertainty and evidence evolve?",
+                "answer": "Questions contain stable id, text, intent/fact/choice type, structured witness, consequence, dependencies, resolver and next resolving action. Record observations, answers, provisional choices, deferrals, contradictions and design revisions as new events. Intent answers cite the requester or authoritative requester documents; fact answers cite observations; choice answers cite policy/source precedence and rationale, with viable alternatives, tradeoff and revisit when consequential. Inference/unknown never become observed evidence by relabeling a status. Provisional fact/choice answers require cheap reversal, detectability and a revisit condition. Deferral names its boundary, owner/reason and trigger; it cannot hide a requirement for the current design. Reopening or replacing relied-on evidence/answers transitively invalidates dependent answers, design checks and evaluations. History remains available.",
+                "after": [
+                  "D3"
+                ],
+                "rationale": "A question's status is not evidence. Dependency invalidation and typed resolution preserve the old engine's core distinctions through adaptive cycles.",
+                "evidence": [
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/ambiguity.md",
+                    "kind": "observed",
+                    "shows": "Resolver separation, reversible assumptions, dependency reopening."
+                  },
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/decisions.md",
+                    "kind": "observed",
+                    "shows": "Evidence provenance, established versus assumed basis, consequential decision metadata."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "Latest answer wins without dependency invalidation",
+                    "rejected_because": "Leaves downstream conclusions apparently valid after their basis changes."
+                  },
+                  {
+                    "option": "Treat every open issue as a blocker",
+                    "rejected_because": "Discards legitimate implementation freedom and safe explicit deferral."
+                  }
+                ],
+                "tradeoff": "Record only relied-on dependencies and consequential questions; irrelevant uncertainty is not made into mandatory ledger work. Runtime validates claimed provenance structure but cannot authenticate it.",
+                "revisit": "Behavioral evaluation finds a material wrong-resolver resolution, hidden deferral or missed dependent reopening."
+              },
+              {
+                "id": "D5",
+                "question": "What makes the evaluator and termination trustworthy?",
+                "answer": "Evaluate the current request, permissions, evidence, decisions and candidate design, not merely the planner's narrative or the open-question count. Return only concrete surviving pairs, defeaters or failed required checks; separate discovery from answering. Questions about goal, assumptions, alternatives, authority, evidence and omissions are optional probes, not six mandatory stages. Before completion require a current candidate design, all required design acceptance checks supported, no unresolved required question, valid dependencies and a challenge tied to the exact current revision. A fresh independent reviewer reads an immutable state snapshot when available; otherwise record local-only evaluation explicitly, never claim independence, and block if independent review is required. When no authorized action can obtain progress, pause as blocked with the needed resolver; never convert a retry/token limit into success.",
+                "after": [
+                  "D2",
+                  "D4"
+                ],
+                "rationale": "The brief explicitly distinguishes an independent evaluator from proof and requires observable justification and permission compliance.",
+                "evidence": [
+                  {
+                    "ref": ".agents/artifact/adaptive.md sections 2, 5 and 7",
+                    "kind": "documented",
+                    "shows": "Optional evaluation questions, independent challenge, acceptance evidence, no manufactured uncertainty."
+                  },
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/instructions.md",
+                    "kind": "documented",
+                    "shows": "Only add instructions that change identifiable decisions."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "Finish when the question ledger is empty",
+                    "rejected_because": "Cannot detect bad criteria, omissions or unsupported success."
+                  },
+                  {
+                    "option": "A fixed stage pipeline with a retry cap",
+                    "rejected_because": "Adds mandatory process and can report unfinished work as complete."
+                  },
+                  {
+                    "option": "Always require a subagent even where unavailable",
+                    "rejected_because": "Makes a harness-independent skill unusable; explicit local assurance is honest unless independence is a task requirement."
+                  }
+                ],
+                "tradeoff": "The evaluator supplies bounded assurance, not proof of completeness. Design-complete never claims future implementation correctness or tests not executed.",
+                "revisit": "A concrete task can falsely complete despite an unresolved required witness, stale evaluation, or required independence being absent."
+              },
+              {
+                "id": "D6",
+                "question": "How will the pivot be evaluated?",
+                "answer": "Separate deterministic ledger tests from agent-behavior evaluation. Test schema rejection, resolver/evidence shape, IDs, dependencies/cycles, reopen propagation, safe deferral, stale evaluations, expected revisions, locking, atomic write failure, corrupt state, CLI resume, history and completion refusal. Add semantic cases for feature design, behavior-preserving refactor, intermittent incident investigation, architectural tradeoff, security evidence, clarification-only tasks and precise negative controls. For each record the witness, chosen resolver, action/decision changed, unnecessary questions, scope compliance and assurance limit. Use at least one held-out task; do not claim behavioral improvement from fixtures or unexecuted evaluations. Port only evidence policies a concrete scenario needs, not five domain workflows or a language-reference catalog.",
+                "after": [
+                  "D1",
+                  "D5"
+                ],
+                "rationale": "Structural validation cannot demonstrate that the instruction changes real agent decisions, and unambiguous tasks must not pay for unnecessary loops.",
+                "evidence": [
+                  {
+                    "ref": ".agents/artifact/adaptive.md sections 3, 5, 6 and 7",
+                    "kind": "documented",
+                    "shows": "Retain evidence standards, test comparison quality and cost, avoid forced questions."
+                  },
+                  {
+                    "ref": "/home/joshsimon/Projects/pi-skills/simple-by-design/references/instructions.md",
+                    "kind": "documented",
+                    "shows": "Observable behavioral outcomes and unfamiliar-case robustness."
+                  }
+                ],
+                "alternatives": [
+                  {
+                    "option": "Unit tests alone establish semantic preservation",
+                    "rejected_because": "They can validate state while instructions still encourage unsupported decisions."
+                  },
+                  {
+                    "option": "Port all old references and task prompts",
+                    "rejected_because": "Adds unproven process and hides the greenfield pivot under old workflow content."
+                  }
+                ],
+                "tradeoff": "A first release can establish deterministic correctness and report limited behavioral evidence; it must not claim universal completeness or full legacy-workflow equivalence.",
+                "revisit": "A held-out case finds a distinct consequential failure not caught by the current semantic contract."
+              }
+            ]
+          }
+        },
+        "challenge": {
+          "status": "done",
+          "attempts": 2,
+          "result": {
+            "gaps": [],
+            "review_mode": "inline; no subagent tool available",
+            "independent": false,
+            "checked": [
+              "Scope follows current user design wording, not broader execution suggested by some examples.",
+              "Witness, resolver, materiality and reopening rules survive without a workflow catalog.",
+              "D7 makes final review certify parent revision R and saves it atomically with completion; stale head refuses.",
+              "D8 permits explicit post-completion reopening while preserving history and original authority.",
+              "Zero-question tasks still need a candidate design and supported acceptance checks, not invented questions.",
+              "Local review is disclosed; unavailable required independence blocks rather than being claimed.",
+              "All 8 decisions include evidence, rationale, alternatives, tradeoff and revisit."
+            ],
+            "limits": [
+              "No implementation exists; behavior, persistence and concurrency tests remain planned.",
+              "Inline semantic review is not independent assurance."
+            ]
+          },
+          "feedback": [
+            {
+              "attempt": 1,
+              "result": {
+                "gaps": [
+                  {
+                    "question": "Which revision does a recorded evaluation certify, given that recording it changes the event-log revision?",
+                    "type": "choice",
+                    "witness": "If current revision includes the evaluation event, every newly stored evaluation is instantly stale and completion is impossible; if any prior revision is accepted, a changed design can complete using an obsolete evaluation.",
+                    "after": [
+                      "D3",
+                      "D5"
+                    ]
+                  },
+                  {
+                    "question": "How does contradictory evidence received after design completion reopen the same task without erasing its earlier completion or implicitly starting a new request?",
+                    "type": "choice",
+                    "witness": "A terminal complete flag can refuse new evidence despite the reopening rule; allowing unrestricted post-completion writes can silently expand authority or keep the old complete status after its justification fails.",
+                    "after": [
+                      "D2",
+                      "D4",
+                      "D5"
+                    ]
+                  }
+                ],
+                "review_mode": "inline; no subagent tool available",
+                "independent": false
+              },
+              "reasons": [
+                "agent: condition not met"
+              ]
+            }
+          ],
+          "previous": {
+            "gaps": [
+              {
+                "question": "Which revision does a recorded evaluation certify, given that recording it changes the event-log revision?",
+                "type": "choice",
+                "witness": "If current revision includes the evaluation event, every newly stored evaluation is instantly stale and completion is impossible; if any prior revision is accepted, a changed design can complete using an obsolete evaluation.",
+                "after": [
+                  "D3",
+                  "D5"
+                ]
+              },
+              {
+                "question": "How does contradictory evidence received after design completion reopen the same task without erasing its earlier completion or implicitly starting a new request?",
+                "type": "choice",
+                "witness": "A terminal complete flag can refuse new evidence despite the reopening rule; allowing unrestricted post-completion writes can silently expand authority or keep the old complete status after its justification fails.",
+                "after": [
+                  "D2",
+                  "D4",
+                  "D5"
+                ]
+              }
+            ],
+            "review_mode": "inline; no subagent tool available",
+            "independent": false
+          }
+        },
+        "summary": {
+          "status": "done",
+          "attempts": 1,
+          "result": {
+            "current": [
+              {
+                "id": "D1",
+                "question": "What is the semantic-boundary engine?",
+                "answer": "Preserve the reasoning contract in references/ambiguity.md: concrete pair or defeater; materiality gate; intent/fact/choice resolver separation; cheap reversible fact/choice assumptions with revisit conditions; reopen affected work on contradiction. references/instructions.md governs instruction minimality. The Python loader/runner/session is replaceable workflow orchestration, not that semantic engine.",
+                "status": "adopted",
+                "basis": "established",
+                "tradeoff": "Semantic judgments remain agent responsibilities; code cannot prove that a witness is plausible or an observation is true.",
+                "revisit": "A concrete preserved semantic rule is found to require runtime behavior not captured by the new contract."
+              },
+              {
+                "id": "D2",
+                "question": "What outcome and authority does the loop have?",
+                "answer": "Produce a justified solution design with goal, constraints, evidence, decisions, open issues and a verification plan. Inspect or experiment only within task permissions. Do not implement the designed solution, deploy, or perform destructive actions. The user's wording settles design scope; broader execution remains separate authorization, not an agent-selected default.",
+                "status": "adopted",
+                "basis": "established",
+                "tradeoff": "The skill will hand off an implementation plan rather than execute it; future approved execution can reuse the reasoning contract.",
+                "revisit": "The user explicitly requests an implementation-executing skill."
+              },
+              {
+                "id": "D3",
+                "question": "What is the smallest durable runtime?",
+                "answer": "Use a stdlib-only Python CLI with new/show/record/finish operations and per-task state at .agents/sbd-adaptive/<task-id>.json. The agent chooses the next warranted observation, clarification, decision or design update; no stages are scheduled. Separate CLI adaptation, pure ledger validation/projection, and atomic persistence. Each state document holds schema version plus an ordered immutable event history; derive the current view rather than storing a second authoritative ledger. Writers lock, require an expected revision, validate before append and atomically replace the document. Task IDs cannot escape the state directory. No automatic restart or cross-task inheritance.",
+                "status": "adopted",
+                "basis": "established",
+                "tradeoff": "The small runtime checks structure and freshness, not semantic truth; the JSON document is rewritten atomically even though its logical history is append-only.",
+                "revisit": "Measured task-state scale or a real multi-writer use case makes the single-document approach inadequate."
+              },
+              {
+                "id": "D4",
+                "question": "How do uncertainty and evidence evolve?",
+                "answer": "Questions contain stable id, text, intent/fact/choice type, structured witness, consequence, dependencies, resolver and next resolving action. Record observations, answers, provisional choices, deferrals, contradictions and design revisions as new events. Intent answers cite the requester or authoritative requester documents; fact answers cite observations; choice answers cite policy/source precedence and rationale, with viable alternatives, tradeoff and revisit when consequential. Inference/unknown never become observed evidence by relabeling a status. Provisional fact/choice answers require cheap reversal, detectability and a revisit condition. Deferral names its boundary, owner/reason and trigger; it cannot hide a requirement for the current design. Reopening or replacing relied-on evidence/answers transitively invalidates dependent answers, design checks and evaluations. History remains available.",
+                "status": "adopted",
+                "basis": "established",
+                "tradeoff": "Record only relied-on dependencies and consequential questions; irrelevant uncertainty is not made into mandatory ledger work. Runtime validates claimed provenance structure but cannot authenticate it.",
+                "revisit": "Behavioral evaluation finds a material wrong-resolver resolution, hidden deferral or missed dependent reopening."
+              },
+              {
+                "id": "D5",
+                "question": "What makes the evaluator and termination trustworthy?",
+                "answer": "Evaluate the current request, permissions, evidence, decisions and candidate design, not merely the planner's narrative or the open-question count. Return only concrete surviving pairs, defeaters or failed required checks; separate discovery from answering. Questions about goal, assumptions, alternatives, authority, evidence and omissions are optional probes, not six mandatory stages. Before completion require a current candidate design, all required design acceptance checks supported, no unresolved required question, valid dependencies and a challenge tied to the exact pre-completion snapshot, atomically accepted with completion as specified in D7. A fresh independent reviewer reads an immutable state snapshot when available; otherwise record local-only evaluation explicitly, never claim independence, and block if independent review is required. When no authorized action can obtain progress, pause as blocked with the needed resolver; never convert a retry/token limit into success.",
+                "status": "adopted",
+                "basis": "established",
+                "tradeoff": "The evaluator supplies bounded assurance, not proof of completeness. Design-complete never claims future implementation correctness or tests not executed.",
+                "revisit": "A concrete task can falsely complete despite an unresolved required witness, stale evaluation, or required independence being absent."
+              },
+              {
+                "id": "D6",
+                "question": "How will the pivot be evaluated?",
+                "answer": "Separate deterministic ledger tests from agent-behavior evaluation. Test schema rejection, resolver/evidence shape, IDs, dependencies/cycles, reopen propagation, safe deferral, stale evaluations, expected revisions, locking, atomic write failure, corrupt state, CLI resume, history and completion refusal. Add semantic cases for feature design, behavior-preserving refactor, intermittent incident investigation, architectural tradeoff, security evidence, clarification-only tasks and precise negative controls. For each record the witness, chosen resolver, action/decision changed, unnecessary questions, scope compliance and assurance limit. Use at least one held-out task; do not claim behavioral improvement from fixtures or unexecuted evaluations. Port only evidence policies a concrete scenario needs, not five domain workflows or a language-reference catalog.",
+                "status": "adopted",
+                "basis": "established",
+                "tradeoff": "A first release can establish deterministic correctness and report limited behavioral evidence; it must not claim universal completeness or full legacy-workflow equivalence.",
+                "revisit": "A held-out case finds a distinct consequential failure not caught by the current semantic contract."
+              },
+              {
+                "id": "D7",
+                "question": "Which revision does final evaluation certify?",
+                "answer": "The evaluator certifies the immutable ledger snapshot at revision R. finish --at R accepts that evaluation and appends its completion record together in one locked atomic transition only while the ledger head is still R. The resulting event is R+1 and explicitly certifies its parent R; it does not require evaluating itself. Any intervening record makes the submission stale. Non-final evaluation findings may be recorded normally, but cannot be reused to finish a later revision.",
+                "status": "adopted",
+                "basis": "established",
+                "tradeoff": "An unrelated intervening ledger record also requires re-evaluation; conservative freshness is preferable to extra version machinery at this scale.",
+                "revisit": "Measured re-evaluation cost demonstrates a need to distinguish substantive changes from annotations."
+              },
+              {
+                "id": "D8",
+                "question": "How does new evidence reopen a completed task?",
+                "answer": "After completion, reject ordinary mutations until an explicit reopen event cites the contradictory observation or reached revisit condition and names affected records. Append that event to the same history, invalidate affected dependents and prior completion, and return the same original design request to active status. Prior completion remains historical, never erased. Reopening grants no new authority. A materially different goal is a new task; changed intent or permissions must be sourced to the requester rather than inferred from reopening.",
+                "status": "adopted",
+                "basis": "established",
+                "tradeoff": "Reopening requires an explicit causal record; it preserves auditability without promising that all external contradictions can be detected automatically.",
+                "revisit": "A real scope revision cannot be represented safely as either a requester-sourced revision or a separate task."
+              }
+            ],
+            "artifact": ".agents/artifacts/adaptive-design.md",
+            "implementation": "not started; awaiting user approval",
+            "review": "inline only; no independent subagent available",
+            "verification": "decision-record consistency only; runtime and behavior tests not run"
+          },
+          "feedback": []
+        }
+      }
+    },
+    {
+      "id": 2,
+      "hash": "b700db7a7757",
+      "status": "done",
+      "started": "2026-11-11T03:35:44+00:00",
+      "updated": "2026-11-11T03:42:08+00:00",
+      "steps": {
+        "ground": {
+          "status": "done",
+          "attempts": 1,
+          "result": {
+            "request": "Plan a drastic prose reduction and replace ledger-centered use with one CLI entry that routes separate focused task prompts to completion; block direct writes while active with a CLI warning. User authorized restarting design; planning only.",
+            "goal": "A CLI-owned adaptive prompt dispatcher with a tiny skill entry, minimal checkpoints, and enforced agent-tool write lock until completion.",
+            "constraints": [
+              "No implementation during this design run; generated plan under .agents/artifacts/.",
+              "Preserve design-only scope and consequential uncertainty semantics, not ledger mechanics.",
+              "Current D3/D4 ledger ownership and D5/D7/D8 ledger-coupled completion/reopen conflict with the new request; explicitly supersede them where necessary.",
+              "Separate prompts must carry bounded context and one objective, not a full ledger or catalog.",
+              "CLI state/output writes must be narrowly exempt from direct-write prohibition; a Python script alone cannot intercept other tools.",
+              "No independent subagent tool available; disclose local review.",
+              "Existing original simple-by-design skill remains unchanged."
+            ],
+            "criteria": [
+              "SKILL.md <=100 body words, zero mandatory reference reads; >=90% mandatory-entry prose reduction from 2127 whitespace words.",
+              "One start/resume entry emits one focused prompt with exact submission command/schema; code selects the next prompt from result, no agent-selected workflow or record taxonomy.",
+              "Minimal replaceable checkpoint, no event log, evidence registry, question dependency graph, or per-record revision ritual.",
+              "Adaptive uncertainty resolution and fresh review can repeat without mandatory invented questions; incomplete and blocked never count as DONE.",
+              "On supported Pi integration, direct write/edit, shell escape, unknown mutation tools and competing agents are blocked while active; internal CLI state/final artifact writes only through controlled boundary.",
+              "Failure, crash, stale result, cancellation, resume and completion lock behavior specified; unsupported enforcement fails closed rather than falsely promising protection.",
+              "Ordered migration plan, prompt/token budgets, deterministic and agent-behavior tests, enforcement boundaries and open limitations documented."
+            ]
+          },
+          "feedback": []
+        },
+        "branch": {
+          "status": "done",
+          "attempts": 1,
+          "result": {
+            "scope_update": "Latest user instruction drops enforced locking/harness integration in favor of fewer agent requirements and less prose. This supersedes ground's enforcement and lock-lifecycle criteria. No Pi extension or OS protection is planned; at most one advisory CLI reminder.",
+            "questions": [
+              {
+                "id": "D9",
+                "question": "How does one CLI entry replace ledger operations with separate focused prompts without restoring a workflow catalog?",
+                "type": "choice",
+                "witness": "Shortening SKILL.md while retaining new/show/record/finish leaves agents constructing ledger events; dumping every instruction at start defeats focused subtasks. A small adaptive dispatcher can emit only the current objective and select continuation from its result.",
+                "after": []
+              },
+              {
+                "id": "D10",
+                "question": "What minimal checkpoint and result contract support interruption and stale-result rejection without becoming a ledger?",
+                "type": "choice",
+                "witness": "An append-only evidence/question registry preserves current ceremony; purely transient prompts lose the active task on resume. A replaceable current checkpoint can preserve the request, candidate, active prompt and bounded unresolved needs without per-record history.",
+                "after": [
+                  "D9"
+                ]
+              },
+              {
+                "id": "D11",
+                "question": "Which prose stays, moves into just-in-time prompts, or disappears?",
+                "type": "choice",
+                "witness": "Moving 2127 mandatory-entry words into CLI output reduces file size but not reading burden. Removing consequential scope/evidence rules entirely risks unauthorized implementation and unsupported completion.",
+                "after": [
+                  "D9"
+                ]
+              },
+              {
+                "id": "D12",
+                "question": "What should remain of the proposed lock after the user's explicit simplification?",
+                "type": "choice",
+                "witness": "Retaining hook setup, tool allowlists, sandboxing or lock recovery contradicts the latest preference; labeling an advisory message a lock falsely implies writes are prevented.",
+                "after": []
+              },
+              {
+                "id": "D13",
+                "question": "How should migration and verification establish lower interaction cost without hiding quality regressions?",
+                "type": "choice",
+                "witness": "A word-count-only change may still require many CLI calls or silently discard requirements. Existing tests enforce ledger mechanics, not focused prompting or improved agent adherence.",
+                "after": [
+                  "D9",
+                  "D10",
+                  "D11",
+                  "D12"
+                ]
+              }
+            ]
+          },
+          "feedback": []
+        },
+        "decide": {
+          "status": "done",
+          "attempts": 1,
+          "result": {
+            "goal": "Replace mandatory prose/ledger operation with a small CLI-owned adaptive prompt dispatcher that minimizes agent requirements.",
+            "constraints": [
+              "Planning only; implementation requires later authorization.",
+              "Target this repository's simple-by-design-adaptive skill; original simple-by-design remains unchanged. The installed original CLI is only the tool conducting this design run.",
+              "Latest user instruction removes enforced locking/harness integration; ground lock-enforcement/lifecycle criteria are withdrawn. Any CLI reminder is advisory, never called write protection.",
+              "Preserve design-only authority, consequential intent clarification, honest evidence and completion; remove ledger ceremony.",
+              "Generated plan at .agents/artifacts/prompt-dispatch-plan.md; no independent reviewer available."
+            ],
+            "criteria": [
+              "SKILL.md <=100 body words with zero required reference reads; >=95% entry reduction from 2127 required words.",
+              "One start/resume entry; one focused prompt and exact return command per response. Straightforward task uses start, draft submission, review submission/DONE.",
+              "Normal path cumulative static instructions <=400 words including entry, measured separately from request/candidate/source content; do not hide old prose in templates.",
+              "Small replaceable checkpoint and opaque stale-submission tickets, no reasoning ledger or agent revision bookkeeping.",
+              "Separate draft/resolve/review prompts; no required invented questions, workflow selection or rule catalog. Blocked/incomplete never DONE.",
+              "Migration and deterministic/agent-behavior validation plan includes overhead and consequential-quality metrics, not an unsupported adherence claim."
+            ],
+            "decisions": [
+              {
+                "id": "D9",
+                "question": "How should one CLI entry drive separate focused prompts?",
+                "answer": "Use scripts/sbd.py --request TEXT to start, bare invocation to resume, and a printed done TICKET command to return a prompt result. A small code-owned router emits draft, resolve-one-need, or review prompts; resolve is optional and repeats only for a consequential need. Result validation, checkpoint and next prompt happen in the same call. Review pass publishes the current design and prints DONE. No workflow catalog, YAML or generic scheduler. This target is the adaptive repository, not the original skill used to run this design.",
+                "after": [],
+                "rationale": "The request specifically replaces ledger-maintaining agent work with code-driven navigation and separate focused prompts.",
+                "supersedes": [
+                  "D3"
+                ],
+                "alternatives": [
+                  {
+                    "option": "Shorten SKILL.md but retain new/show/record/finish",
+                    "rejected_because": "Leaves agents managing the current ledger API and extra calls."
+                  },
+                  {
+                    "option": "Copy the original workflow runner",
+                    "rejected_because": "Restores catalog and process machinery unrelated to this focused adaptive task."
+                  }
+                ],
+                "tradeoff": "Three small prompt jobs introduce minimal routing; they are not fresh model contexts unless actually delegated. No subagent infrastructure is required.",
+                "evidence": [
+                  {
+                    "ref": "User request summarized in ground: CLI entry navigates separate focused prompts instead of ledger",
+                    "kind": "documented",
+                    "shows": "Requested interaction model."
+                  },
+                  {
+                    "ref": "scripts/sbd.py; tests/test_cli.py",
+                    "kind": "observed",
+                    "shows": "Current four-operation revisioned ledger API and five-call trivial example."
+                  }
+                ],
+                "revisit": "Trials find a prompt job adds cost without changing a consequential decision, or misses a needed continuation."
+              },
+              {
+                "id": "D10",
+                "question": "What minimal checkpoint and completion contract replaces ledger mechanics?",
+                "answer": "Keep one atomic current run snapshot: original request/constraints/permissions, current candidate, concise material basis/need, latest feedback, active prompt/ticket and status. No event history, evidence registry, question graph or per-record IDs. CLI-generated tickets and internal writer locking reject stale/concurrent results. Full redraft/review against the original request replaces dependency maintenance. Only passing review of the current candidate publishes an idempotent final artifact and returns DONE; publication errors never succeed. Blocked prompts resume with their current question. Explicit fresh requests start subsequent runs; old completed artifacts remain, legacy ledger state is not silently imported.",
+                "after": [
+                  "D9"
+                ],
+                "rationale": "Interruption safety needs durable current context, not the old immutable history or dependency taxonomy. The original request remains available for every redraft/review.",
+                "supersedes": [
+                  "D4",
+                  "D5",
+                  "D7",
+                  "D8"
+                ],
+                "alternatives": [
+                  {
+                    "option": "Keep the event ledger hidden behind convenience commands",
+                    "rejected_because": "Retains unnecessary reasoning/state concepts and current schema obligations."
+                  },
+                  {
+                    "option": "No durable state",
+                    "rejected_because": "Cannot reliably resume the current prompt and candidate."
+                  }
+                ],
+                "tradeoff": "Loses automatic transitive invalidation and machine-readable reasoning history; preserves final artifacts and rechecks the full current candidate. Review is local unless truly delegated; required independent review still blocks if unavailable.",
+                "evidence": [
+                  {
+                    "ref": "scripts/engine/state.py",
+                    "kind": "observed",
+                    "shows": "Existing safe paths, writer locking and atomic replacement can be reused without replaying a ledger."
+                  },
+                  {
+                    "ref": ".agents/artifacts/guardrails-8020-review.md",
+                    "kind": "documented",
+                    "shows": "Persistence ceremony is the major friction source; five behavioral safeguards matter more than formal records."
+                  },
+                  {
+                    "ref": "Minimal current checkpoint design",
+                    "kind": "inferred",
+                    "shows": "A current snapshot plus original request appears adequate; resume/adherence trials must verify this."
+                  }
+                ],
+                "revisit": "Resume trials lose a material basis, stale review can complete, or a real audit requirement demands history."
+              },
+              {
+                "id": "D11",
+                "question": "Which prose stays or disappears?",
+                "answer": "Use <=100 SKILL.md body words and zero mandatory references; keep the run/return/stop contract only. Put short scope/evidence/uncertainty reminders in the one prompt that needs them. Draft produces a design; resolve asks consequential intent or obtains factual basis; review checks the request, material failure modes, actual verification and limitations. Do not require witness taxonomy, policy enums, exhaustive alternatives for minor choices or independent-review setup. Ordinary static instruction exposure <=400 words including entry; never truncate original request/candidate to hit that budget.",
+                "after": [
+                  "D9"
+                ],
+                "rationale": "The latest user instruction prioritizes fewer requirements and less prose to improve adherence; merely moving old prose into templates does not satisfy it.",
+                "alternatives": [
+                  {
+                    "option": "Move every reference into an emitted mega-prompt",
+                    "rejected_because": "Reduces file size but not reading or procedural burden."
+                  },
+                  {
+                    "option": "Remove all semantic safeguards",
+                    "rejected_because": "Makes scope overreach, invented intent and unsupported success easier."
+                  }
+                ],
+                "tradeoff": "Keep a few outcome-focused reminders rather than formal proof machinery; behavioral equivalence is not assumed from word counts.",
+                "evidence": [
+                  {
+                    "ref": "User: 'Instead focusing on minimizing agent requirements and prose to increase adherance'",
+                    "kind": "documented",
+                    "shows": "Current priority."
+                  },
+                  {
+                    "ref": "SKILL.md; references/ambiguity.md; references/ledger.md; wc -w",
+                    "kind": "observed",
+                    "shows": "575 + 397 + 1155 = 2127 required-entry words."
+                  },
+                  {
+                    "ref": ".agents/artifacts/guardrails-8020-review.md",
+                    "kind": "documented",
+                    "shows": "Five consequential safeguards and candidates for removing ceremony."
+                  }
+                ],
+                "revisit": "Same-model trials show consequential regressions or instruction exposure remains high."
+              },
+              {
+                "id": "D12",
+                "question": "What remains of the proposed lock?",
+                "answer": "No enforced write lock, Pi extension, tool interception, sandbox or permissions integration. At most one advisory footer asks the agent to return results through the printed CLI command and remain design-only. Do not label it write protection. Internal checkpoint mutexes only prevent competing state transitions; they do not block agent tools. This explicitly overrides earlier ground lock-enforcement and lifecycle requirements.",
+                "after": [],
+                "rationale": "The user expressly dropped the enforcement requirement and prioritized fewer agent obligations.",
+                "alternatives": [
+                  {
+                    "option": "Implement harness-level enforcement or shell sandbox",
+                    "rejected_because": "Withdrawn by latest user direction and increases setup and failure handling."
+                  },
+                  {
+                    "option": "Describe a marker file as an enforced lock",
+                    "rejected_because": "Misrepresents capability; markers cannot intercept other tools."
+                  }
+                ],
+                "tradeoff": "No technical prevention of off-CLI writes; ordinary task authority and concise instructions remain behavioral expectations.",
+                "evidence": [
+                  {
+                    "ref": "Latest user instruction dropping quoted harness-enforcement requirement",
+                    "kind": "documented",
+                    "shows": "Enforcement is out of scope."
+                  }
+                ],
+                "revisit": "User explicitly requests technical write prevention again."
+              },
+              {
+                "id": "D13",
+                "question": "How should migration and verification establish lower overhead without hiding regressions?",
+                "answer": "Implement router/prompts first, then snapshot persistence and CLI, then trim entry/docs and remove ledger-only code/tests. Keep original skill and legacy task files unchanged; advertise the ledger API break, not a permanent compatibility mode. Test routing, prompt boundaries, normal-path calls, stale tickets, resume, corrupt state, concurrent writers and crash-safe publishing. Compare current/proposed instructions on the same model/tasks for trivial design, consequential intent, reversible choice, report-only authority, unsupported factual claim, material correction and blocked resumption. Measure procedural tokens/calls and consequential failures separately. Target >=70% median procedural-token reduction on that suite with no observed consequential regressions; claim no improvement before trials.",
+                "after": [
+                  "D9",
+                  "D10",
+                  "D11",
+                  "D12"
+                ],
+                "rationale": "Existing ledger tests validate mechanics, not whether separate compact prompts improve actual adherence.",
+                "supersedes": [
+                  "D6"
+                ],
+                "alternatives": [
+                  {
+                    "option": "Word counts and schema tests only",
+                    "rejected_because": "Cannot establish adherence, honesty or requirement coverage."
+                  },
+                  {
+                    "option": "Keep two permanent runtimes for compatibility",
+                    "rejected_because": "Adds concepts and maintenance contrary to the requested simplification."
+                  }
+                ],
+                "tradeoff": "A small matched suite provides limited evidence, not universal assurance; migration intentionally drops the old runtime API.",
+                "evidence": [
+                  {
+                    "ref": "tests/test_cli.py; tests/test_scenarios.py; .agents/artifacts/guardrails-8020-review.md",
+                    "kind": "observed",
+                    "shows": "Current tests encode ledger behavior; prior review disclaims measured behavioral improvement."
+                  },
+                  {
+                    "ref": "Proposed matched trial and budgets",
+                    "kind": "inferred",
+                    "shows": "A practical adoption gate, not an observed improvement."
+                  }
+                ],
+                "revisit": "Trials show quality loss, insufficient overhead reduction or a necessary compatibility user."
+              }
+            ]
+          },
+          "feedback": []
+        },
+        "challenge": {
+          "status": "done",
+          "attempts": 1,
+          "result": {
+            "gaps": [],
+            "review_mode": "inline; no independent subagent tool available",
+            "independent": false,
+            "checked": [
+              "Latest user instruction overrides original ground lock requirements: no extension, sandbox or write-protection promise remains.",
+              "Target explicitly this adaptive repository; original skill used to conduct design stays unchanged.",
+              "D9-D13 each include alternatives, tradeoff, evidence and revisit; D3-D8 ledger-linked decisions explicitly superseded, D1/D2 semantic scope retained.",
+              "Current checkpoint plus original request supports redraft/review without a graph; evidence loss and resume regression are explicit revisit/validation conditions, not claimed solved empirically.",
+              "Zero-gap path has three calls and no manufactured questions; prose budgets count emitted instructions as well as entry, preventing mere relocation of old prose.",
+              "Prompt separation is not fresh-context orchestration; local review disclosed and unavailable required independence blocks.",
+              "Stale tickets, concurrent writers, blocked resume and idempotent publication are covered by planned tests; errors cannot mean DONE.",
+              "No runtime implementation or adherence improvement claimed; behavioral comparison remains a future adoption gate."
+            ],
+            "limits": [
+              "Static/local design review only; no independent review.",
+              "No proposed runtime exists, no redesign tests or agent trials executed.",
+              "Minimal checkpoint adequacy and improved adherence remain hypotheses to test."
+            ]
+          },
+          "feedback": []
+        },
+        "summary": {
+          "status": "done",
+          "attempts": 1,
+          "result": {
+            "current": [
+              {
+                "id": "D1",
+                "question": "What is the semantic-boundary engine?",
+                "answer": "Preserve the reasoning contract in references/ambiguity.md: concrete pair or defeater; materiality gate; intent/fact/choice resolver separation; cheap reversible fact/choice assumptions with revisit conditions; reopen affected work on contradiction. references/instructions.md governs instruction minimality. The Python loader/runner/session is replaceable workflow orchestration, not that semantic engine.",
+                "tradeoff": "Semantic judgments remain agent responsibilities; code cannot prove that a witness is plausible or an observation is true.",
+                "revisit": "A concrete preserved semantic rule is found to require runtime behavior not captured by the new contract.",
+                "status": "adopted",
+                "basis": "established"
+              },
+              {
+                "id": "D2",
+                "question": "What outcome and authority does the loop have?",
+                "answer": "Produce a justified solution design with goal, constraints, evidence, decisions, open issues and a verification plan. Inspect or experiment only within task permissions. Do not implement the designed solution, deploy, or perform destructive actions. The user's wording settles design scope; broader execution remains separate authorization, not an agent-selected default.",
+                "tradeoff": "The skill will hand off an implementation plan rather than execute it; future approved execution can reuse the reasoning contract.",
+                "revisit": "The user explicitly requests an implementation-executing skill.",
+                "status": "adopted",
+                "basis": "established"
+              },
+              {
+                "id": "D9",
+                "question": "How should one CLI entry drive separate focused prompts?",
+                "answer": "Use scripts/sbd.py --request TEXT to start, bare invocation to resume, and a printed done TICKET command to return a prompt result. A small code-owned router emits draft, resolve-one-need, or review prompts; resolve is optional and repeats only for a consequential need. Result validation, checkpoint and next prompt happen in the same call. Review pass publishes the current design and prints DONE. No workflow catalog, YAML or generic scheduler. This target is the adaptive repository, not the original skill used to run this design.",
+                "tradeoff": "Three small prompt jobs introduce minimal routing; they are not fresh model contexts unless actually delegated. No subagent infrastructure is required.",
+                "revisit": "Trials find a prompt job adds cost without changing a consequential decision, or misses a needed continuation.",
+                "status": "adopted",
+                "basis": "established"
+              },
+              {
+                "id": "D10",
+                "question": "What minimal checkpoint and completion contract replaces ledger mechanics?",
+                "answer": "Keep one atomic current run snapshot: original request/constraints/permissions, current candidate, concise material basis/need, latest feedback, active prompt/ticket and status. No event history, evidence registry, question graph or per-record IDs. CLI-generated tickets and internal writer locking reject stale/concurrent results. Full redraft/review against the original request replaces dependency maintenance. Only passing review of the current candidate publishes an idempotent final artifact and returns DONE; publication errors never succeed. Blocked prompts resume with their current question. Explicit fresh requests start subsequent runs; old completed artifacts remain, legacy ledger state is not silently imported.",
+                "tradeoff": "Loses automatic transitive invalidation and machine-readable reasoning history; preserves final artifacts and rechecks the full current candidate. Review is local unless truly delegated; required independent review still blocks if unavailable.",
+                "revisit": "Resume trials lose a material basis, stale review can complete, or a real audit requirement demands history.",
+                "status": "adopted",
+                "basis": "established"
+              },
+              {
+                "id": "D11",
+                "question": "Which prose stays or disappears?",
+                "answer": "Use <=100 SKILL.md body words and zero mandatory references; keep the run/return/stop contract only. Put short scope/evidence/uncertainty reminders in the one prompt that needs them. Draft produces a design; resolve asks consequential intent or obtains factual basis; review checks the request, material failure modes, actual verification and limitations. Do not require witness taxonomy, policy enums, exhaustive alternatives for minor choices or independent-review setup. Ordinary static instruction exposure <=400 words including entry; never truncate original request/candidate to hit that budget.",
+                "tradeoff": "Keep a few outcome-focused reminders rather than formal proof machinery; behavioral equivalence is not assumed from word counts.",
+                "revisit": "Same-model trials show consequential regressions or instruction exposure remains high.",
+                "status": "adopted",
+                "basis": "established"
+              },
+              {
+                "id": "D12",
+                "question": "What remains of the proposed lock?",
+                "answer": "No enforced write lock, Pi extension, tool interception, sandbox or permissions integration. At most one advisory footer asks the agent to return results through the printed CLI command and remain design-only. Do not label it write protection. Internal checkpoint mutexes only prevent competing state transitions; they do not block agent tools. This explicitly overrides earlier ground lock-enforcement and lifecycle requirements.",
+                "tradeoff": "No technical prevention of off-CLI writes; ordinary task authority and concise instructions remain behavioral expectations.",
+                "revisit": "User explicitly requests technical write prevention again.",
+                "status": "adopted",
+                "basis": "established"
+              },
+              {
+                "id": "D13",
+                "question": "How should migration and verification establish lower overhead without hiding regressions?",
+                "answer": "Implement router/prompts first, then snapshot persistence and CLI, then trim entry/docs and remove ledger-only code/tests. Keep original skill and legacy task files unchanged; advertise the ledger API break, not a permanent compatibility mode. Test routing, prompt boundaries, normal-path calls, stale tickets, resume, corrupt state, concurrent writers and crash-safe publishing. Compare current/proposed instructions on the same model/tasks for trivial design, consequential intent, reversible choice, report-only authority, unsupported factual claim, material correction and blocked resumption. Measure procedural tokens/calls and consequential failures separately. Target >=70% median procedural-token reduction on that suite with no observed consequential regressions; claim no improvement before trials.",
+                "tradeoff": "A small matched suite provides limited evidence, not universal assurance; migration intentionally drops the old runtime API.",
+                "revisit": "Trials show quality loss, insufficient overhead reduction or a necessary compatibility user.",
+                "status": "adopted",
+                "basis": "established"
+              }
+            ],
+            "artifact": ".agents/artifacts/prompt-dispatch-plan.md",
+            "decision_artifact": ".agents/artifacts/prompt-dispatch-decisions.md",
+            "scope_update": "User withdrew enforced locking/harness integration; earlier ground lock criteria superseded.",
+            "implementation": "not started; awaiting approval",
+            "review": "local only; independent: false",
+            "verification": "source inspection and design consistency review only; no redesigned runtime tests or agent trials"
+          },
+          "feedback": []
+        }
+      }
+    }
+  ]
+}

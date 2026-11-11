@@ -1,1 +1,1 @@
-"""Adaptive ledger; deliberately no workflow runtime."""
+"""Focused design prompts, fixed routing and current-checkpoint persistence."""

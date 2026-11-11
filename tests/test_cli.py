@@ -1,86 +1,127 @@
 import json
-import os
 from pathlib import Path
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
 import unittest
 
-from support import ROOT, check, design, evidence, review, task
-
-CLI = ROOT / "scripts" / "sbd.py"
+from support import ROOT, CLI, REQUEST, CANDIDATE, PASS, NEED, BLOCKED, RESOLVED, Store
+from engine.prompts import render, return_command
+from engine import router
 
 
 class CliTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory()
+        self.temporary = tempfile.TemporaryDirectory(prefix="sbd project's ")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
 
-    def run_cli(self, *arguments, data=None, raw=None, expected=0):
-        process = subprocess.run([sys.executable, str(CLI), *arguments], cwd=self.root,
-                                 input=raw if raw is not None else json.dumps(data),
-                                 text=True, capture_output=True, timeout=10)
+    def cli(self, *args, data=None, expected=0):
+        process = subprocess.run([sys.executable, str(CLI), '--root', str(self.root), *args],
+                                 input=data, capture_output=True, text=True, cwd='/')
         self.assertEqual(process.returncode, expected, process.stderr)
-        if expected:
-            self.assertFalse(process.stdout)
-            self.assertNotIn("Traceback", process.stderr)
-            return process.stderr
-        return json.loads(process.stdout)
+        return process
 
-    def test_new_show_resume_record_finish_historical_show(self):
-        self.assertEqual(self.run_cli("new", "greeting", data=task())["revision"], 1)
-        for revision, record in enumerate((evidence(), design(), check()), 1):
-            self.assertEqual(self.run_cli("record", "greeting", "--at", str(revision), data=record)["revision"], revision + 1)
-        complete = self.run_cli("finish", "greeting", "--at", "4", data=review(4))
-        self.assertEqual(complete["completion"]["certifies"], 4)
-        self.assertEqual(self.run_cli("show", "greeting")["status"], "complete")
-        snapshot = self.run_cli("show", "greeting", "--at", "4", "--history")
-        self.assertEqual(snapshot["status"], "active")
-        self.assertEqual(len(snapshot["events"]), 4)
-        self.run_cli("new", "greeting", data=task(), expected=2)
-        self.run_cli("record", "greeting", "--at", "5", data=evidence("later"), expected=2)
+    def submit(self, result, expected=0):
+        ticket = Store(self.root).load()['ticket']
+        return self.cli('done', ticket, data=json.dumps(result), expected=expected)
 
-    def test_malformed_json_ids_missing_state_and_required_revision_fail_cleanly(self):
-        for raw in ("", "{", "null", "[]", '{"request":1,"request":2}', '{"request":NaN}'):
-            self.run_cli("new", "task", raw=raw, expected=2)
-        self.run_cli("new", "../outside", data=task(), expected=2)
-        self.run_cli("show", "missing", expected=2)
-        self.run_cli("record", "missing", data=evidence(), expected=2)
-        self.run_cli("new", "task", data=task())
-        self.run_cli("record", "task", "--at", "1", data={"type": []}, expected=2)
-        self.run_cli("record", "task", "--at", "1", data={"type": "evidence", "id": "bad"}, expected=2)
-        self.assertEqual(self.run_cli("show", "task")["revision"], 1)
+    def test_ordinary_task_finishes_in_three_calls_with_current_prompt_only(self):
+        first = self.cli('--request', REQUEST).stdout
+        self.assertIn('TASK: draft', first)
+        self.assertNotIn('TASK: review', first)
+        self.assertNotIn('TASK: resolve', first)
+        second = self.submit(CANDIDATE).stdout
+        self.assertIn('TASK: review', second)
+        self.assertIn(CANDIDATE['text'], second)
+        self.assertNotIn('TASK: draft', second)
+        third = self.submit(PASS).stdout
+        self.assertTrue(third.startswith('DONE: .agents/artifacts/solution-design-'))
+        self.assertEqual(self.cli().stdout, third)
+        self.assertEqual(len(list((self.root / '.agents/artifacts').glob('*.md'))), 1)
 
-    def test_explicit_root_works_from_unrelated_directory(self):
-        project = self.root / "project"
-        project.mkdir()
-        self.run_cli("--root", str(project), "new", "task", data=task())
-        self.assertTrue((project / ".agents" / "sbd-adaptive" / "task.json").exists())
-        self.assertFalse((self.root / ".agents").exists())
+    def test_no_run_prints_start_usage_and_creates_no_files(self):
+        output = self.cli().stdout
+        self.assertIn('--request', output)
+        self.assertEqual(list(self.root.iterdir()), [])
 
-    def test_documented_negative_control_runs_verbatim_without_questions(self):
-        document = (ROOT / "references" / "ledger.md").read_text()
-        example = re.search(r"```sh\n(.*?)\n```", document, re.S).group(1)
-        process = subprocess.run(["sh", "-e"], input=example, text=True, capture_output=True,
-                                 cwd=self.root, env={**os.environ, "S": str(ROOT)}, timeout=10)
+    def test_invalid_input_has_repair_hint_without_advancing(self):
+        self.cli('--request', REQUEST)
+        path = Store(self.root).path
+        before = path.read_bytes()
+        for data in ('{', '[]', '{"status":"candidate"}',
+                     '{"status":"candidate","status":"candidate","text":"x"}',
+                     '{"status":NaN}', '{"status":"candidate","text":"x","next":"DONE"}'):
+            process = self.cli('done', Store(self.root).load()['ticket'], data=data, expected=2)
+            self.assertIn('Resume:', process.stderr)
+            self.assertNotIn('DONE:', process.stdout)
+            self.assertEqual(path.read_bytes(), before)
+        self.cli('--request', 'different', expected=2)
+        self.assertEqual(path.read_bytes(), before)
+        self.cli('done', 'bad-ticket', data=json.dumps(CANDIDATE), expected=2)
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_blocked_reissue_and_acquired_answer_use_same_command(self):
+        self.cli('--request', REQUEST)
+        self.submit(NEED)
+        output = self.submit(BLOCKED).stdout
+        self.assertIn('BLOCKED', output)
+        self.assertEqual(self.cli().stdout, output)
+        self.assertIn('Requester answer.', output)
+        self.assertIn('TASK: draft', self.submit(RESOLVED).stdout)
+
+    def test_printed_command_is_executable_from_another_cwd_with_quoted_paths(self):
+        self.cli('--request', REQUEST)
+        document = Store(self.root).load()
+        command = return_command(document, CLI, self.root)
+        process = subprocess.run(shlex.split(command), input=json.dumps(CANDIDATE),
+                                 cwd='/', capture_output=True, text=True)
         self.assertEqual(process.returncode, 0, process.stderr)
-        view = self.run_cli("show", "greeting", "--history")
-        self.assertEqual(view["status"], "complete")
-        self.assertEqual(len(view["events"]), 5)
-        self.assertFalse(any(r["type"] == "question" for r in view["records"].values()))
+        self.assertIn('TASK: review', process.stdout)
 
-    def test_skill_frontmatter_and_relative_reference_links(self):
-        skill = (ROOT / "SKILL.md").read_text()
-        frontmatter = re.match(r"---\n(.*?)\n---\n", skill, re.S).group(1)
-        self.assertIn("name: simple-by-design-adaptive", frontmatter)
-        self.assertRegex(frontmatter, r"description: .+")
-        for file in [ROOT / "SKILL.md", *sorted((ROOT / "references").glob("*.md"))]:
-            for destination in re.findall(r"\]\(([^)]+)\)", file.read_text()):
-                self.assertTrue((file.parent / destination).is_file(), f"broken link in {file}: {destination}")
-        self.assertFalse((ROOT / "workflows").exists())
+    def test_usage_and_obsolete_api_are_rejected(self):
+        for args in (('done',), ('new', 'old'), ('--request', REQUEST, 'done', 'ticket')):
+            self.cli(*args, expected=2)
+        self.assertIn('Focused design prompts', self.cli('--help').stdout)
+        self.cli('--request', ' ', expected=2)
+        self.assertEqual(list(self.root.iterdir()), [])
+
+    def test_skill_entry_and_ordinary_static_instruction_budgets(self):
+        skill = (ROOT / 'SKILL.md').read_text()
+        self.assertTrue(skill.startswith('---\nname: simple-by-design-adaptive\n'))
+        self.assertIn('disable-model-invocation: true', skill)
+        body = skill.split('---', 2)[2]
+        self.assertLessEqual(len(body.split()), 100)
+        self.assertGreaterEqual(1 - len(body.split()) / 2127, .95)
+        self.assertNotRegex(body, r'references/|\]\(')
+        document = router.new(REQUEST)
+        outputs = [render(document, CLI, self.root)]
+        outputs.append(render(router.advance(document, CANDIDATE), CLI, self.root))
+        ordinary = len(body.split())
+        for output in outputs:
+            # Count the entire emitted static surface, not just template strings.
+            start = output.index('{\n')
+            end = output.index('\n\nReturn JSON:', start)
+            ordinary += len((output[:start] + output[end:]).split())
+        self.assertLessEqual(ordinary, 400)
+        for path in (ROOT / 'SKILL.md', ROOT / 'README.md'):
+            for link in re.findall(r'\]\(([^)]+)\)', path.read_text()):
+                self.assertTrue((path.parent / link).is_file(), link)
+        self.assertFalse((ROOT / 'references').exists())
+        self.assertFalse((ROOT / 'scripts/engine/ledger.py').exists())
+
+    def test_large_original_request_and_candidate_are_not_truncated(self):
+        request = 'request-start ' + 'x' * 30000 + ' request-end'
+        draft = router.new(request)
+        candidate = 'candidate-start ' + 'y' * 30000 + ' candidate-end'
+        review = router.advance(draft, {'status': 'candidate', 'text': candidate})
+        for document in (draft, review):
+            output = render(document, CLI, self.root)
+            self.assertIn(request, output)
+        self.assertIn(candidate, render(review, CLI, self.root))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

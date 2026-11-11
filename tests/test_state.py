@@ -7,10 +7,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from support import ROOT, evidence, ledger, review, task
-from engine.state import Store, decode
-
-CLI = ROOT / "scripts" / "sbd.py"
+from support import CLI, REQUEST, CANDIDATE, PASS, NEED, BLOCKED, RESOLVED, DispatchError, Store
+from engine.state import decode
 
 
 class StateTests(unittest.TestCase):
@@ -18,165 +16,292 @@ class StateTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        self.directory = self.root / ".agents" / "sbd-adaptive"
-        self.store = Store(self.directory)
-        self.store.new("task", task())
+        self.store = Store(self.root)
+        self.initial = self.store.start(REQUEST)
+        self.path = self.store.path
 
-    def test_new_refuses_existing_task_and_read_never_creates_missing_state(self):
-        before = (self.directory / "task.json").read_bytes()
-        with self.assertRaisesRegex(ledger.LedgerError, "already exists"):
-            self.store.new("task", task())
-        self.assertEqual((self.directory / "task.json").read_bytes(), before)
-        missing = Store(self.root / "missing")
-        with self.assertRaises(FileNotFoundError):
-            missing.show("task")
-        self.assertFalse(missing.directory.exists())
+    def submit(self, result):
+        return self.store.submit(self.store.load()['ticket'], result)
 
-    def test_resume_history_and_historical_snapshot_survive_new_store_instance(self):
-        self.store.record("task", evidence(), at=1)
-        self.store.record("task", evidence("second"), at=2)
-        resumed = Store(self.directory)
-        self.assertEqual(resumed.show("task")["revision"], 3)
-        snapshot = resumed.show("task", at=2, history=True)
-        self.assertEqual(snapshot["revision"], 2)
-        self.assertEqual(len(snapshot["events"]), 2)
-        self.assertNotIn("second", snapshot["records"])
-        for at in (0, -1, 4, True):
-            with self.assertRaises(ledger.LedgerError):
-                resumed.show("task", at=at)
+    def test_start_resume_and_explicit_new_run_after_completion(self):
+        self.assertEqual(Store(self.root).resume(), self.initial)
+        self.assertEqual(self.store.start(REQUEST), self.initial)
+        before = self.path.read_bytes()
+        with self.assertRaisesRegex(DispatchError, 'different request'):
+            self.store.start('New request')
+        self.assertEqual(self.path.read_bytes(), before)
+        self.submit(CANDIDATE)
+        complete = self.submit(PASS)
+        self.assertEqual(Store(self.root).resume(), complete)
+        artifact = self.root / complete['artifact']
+        self.assertIn(CANDIDATE['text'], artifact.read_text())
+        self.assertIn(REQUEST, artifact.read_text())
+        new = self.store.start(REQUEST)  # Explicit --request is sufficient after DONE.
+        self.assertNotEqual(new['run_id'], complete['run_id'])
+        self.assertTrue(artifact.is_file())
+        with self.assertRaisesRegex(DispatchError, 'stale'):
+            self.store.submit(complete['ticket'], PASS)
+        self.assertEqual(self.store.resume(), new)
 
-    def test_stale_and_invalid_writes_leave_bytes_untouched(self):
-        self.store.record("task", evidence(), at=1)
-        path = self.directory / "task.json"
-        before = path.read_bytes()
-        for operation in (lambda: self.store.record("task", evidence("other"), at=1),
-                          lambda: self.store.record("task", {"type": "bad"}, at=2),
-                          lambda: self.store.record("task", review(2), at=2, finish=True)):
-            with self.assertRaises(ledger.LedgerError):
-                operation()
-            self.assertEqual(path.read_bytes(), before)
+    def test_missing_resume_creates_nothing_and_legacy_state_is_untouched(self):
+        missing = self.root / 'other'
+        missing.mkdir()
+        self.assertIsNone(Store(missing).resume())
+        self.assertEqual(list(missing.iterdir()), [])
+        with self.assertRaises(DispatchError):
+            Store(missing).submit('anything', CANDIDATE)
+        legacy = self.path.parent / 'legacy.json'
+        legacy.write_text('{"events": ["old data"]}')
+        self.submit(CANDIDATE)
+        self.submit(PASS)
+        self.assertEqual(legacy.read_text(), '{"events": ["old data"]}')
 
-    def test_replace_failure_keeps_old_document_and_cleans_temporary(self):
-        path = self.directory / "task.json"
-        before = path.read_bytes()
-        with patch("engine.state.os.replace", side_effect=OSError("simulated interrupted replace")):
-            with self.assertRaisesRegex(OSError, "interrupted"):
-                self.store.record("task", evidence(), at=1)
-        self.assertEqual(path.read_bytes(), before)
-        self.assertFalse(list(self.directory.glob("*.tmp")))
-        self.assertEqual(self.store.show("task")["revision"], 1)
-        # The writer lock also released on failure.
-        self.store.record("task", evidence(), at=1)
+    def test_blocked_resume_keeps_ticket_request_candidate_and_need(self):
+        review = self.submit(CANDIDATE)
+        self.submit(NEED)
+        blocked = self.submit(BLOCKED)
+        self.assertEqual(Store(self.root).resume(), blocked)
+        self.assertEqual(blocked['candidate'], review['candidate'])
+        resolved = self.submit(RESOLVED)
+        self.assertEqual(resolved['request'], REQUEST)
+        self.assertEqual(resolved['prompt'], 'draft')
+        self.assertIn('English', resolved['basis'])
+        with self.assertRaises(DispatchError):
+            self.submit(PASS)
 
-    def test_fsync_before_replace_failure_keeps_old_document(self):
-        before = (self.directory / "task.json").read_bytes()
-        with patch("engine.state.os.fsync", side_effect=OSError("simulated fsync failure")):
-            with self.assertRaises(OSError):
-                self.store.record("task", evidence(), at=1)
-        self.assertEqual((self.directory / "task.json").read_bytes(), before)
-        self.assertFalse(list(self.directory.glob("*.tmp")))
+    def test_stale_invalid_duplicate_results_do_not_advance(self):
+        review = self.submit(CANDIDATE)
+        before = self.path.read_bytes()
+        for ticket, result in ((self.initial['ticket'], CANDIDATE),
+                               ('../escape', PASS), (review['ticket'], {'status': 'pass'})):
+            with self.assertRaises(DispatchError):
+                self.store.submit(ticket, result)
+            self.assertEqual(self.path.read_bytes(), before)
+        complete = self.submit(PASS)
+        with self.assertRaisesRegex(DispatchError, 'duplicate'):
+            self.store.submit(complete['ticket'], PASS)
+        self.assertEqual(len(list((self.root / '.agents/artifacts').glob('*.md'))), 1)
 
-    def test_error_after_replace_requires_reload_not_assuming_rollback(self):
-        fsync = os.fsync
-        calls = 0
+    def test_replace_and_fsync_failure_preserve_old_checkpoint(self):
+        before = self.path.read_bytes()
+        for target in ('engine.state.os.replace', 'engine.state.os.fsync'):
+            with patch(target, side_effect=OSError('interrupted write')):
+                with self.assertRaises(OSError):
+                    self.submit(CANDIDATE)
+            self.assertEqual(self.path.read_bytes(), before)
+            self.assertFalse(list(self.path.parent.glob('*.tmp')))
+        self.submit(CANDIDATE)  # Lock released on error.
+
+    def test_failure_after_checkpoint_replace_requires_reload(self):
+        fsync, replace = os.fsync, os.replace
+        replaced = False
+
+        def after_replace(source, target):
+            nonlocal replaced
+            replace(source, target)
+            replaced = True
 
         def fail_directory(fd):
-            nonlocal calls
-            calls += 1
-            if calls == 2:
-                raise OSError("directory sync failure after rename")
+            if replaced:
+                raise OSError('directory sync failure after rename')
             return fsync(fd)
 
-        with patch("engine.state.os.fsync", side_effect=fail_directory):
+        with patch('engine.state.os.replace', side_effect=after_replace), \
+                patch('engine.state.os.fsync', side_effect=fail_directory):
             with self.assertRaises(OSError):
-                self.store.record("task", evidence(), at=1)
-        self.assertEqual(self.store.show("task")["revision"], 2)
-        with self.assertRaisesRegex(ledger.LedgerError, "stale"):
-            self.store.record("task", evidence("retry"), at=1)
+                self.submit(CANDIDATE)
+        self.assertEqual(self.store.resume()['prompt'], 'review')
+        with self.assertRaisesRegex(DispatchError, 'stale'):
+            self.store.submit(self.initial['ticket'], CANDIDATE)
 
-    def test_corruption_unsupported_schema_duplicate_keys_and_nan_fail_closed(self):
-        path = self.directory / "task.json"
-        valid = path.read_text()
-        corruptions = ["{", "[]", valid.replace('"schema_version": 1', '"schema_version": 999'),
-                       valid.replace('"schema_version": 1', '"schema_version": 1, "schema_version": 1'),
-                       valid.replace('"schema_version": 1', '"schema_version": NaN'),
-                       valid.replace('"task_id": "task"', '"task_id": "other"')]
-        for raw in corruptions:
-            with self.subTest(raw=raw):
-                path.write_text(raw)
-                with self.assertRaises(ledger.LedgerError):
-                    self.store.show("task")
-                with self.assertRaises(ledger.LedgerError):
-                    self.store.record("task", evidence(), at=1)
-                with self.assertRaises(ledger.LedgerError):
-                    self.store.new("task", task())
-                self.assertEqual(path.read_text(), raw)
-        with self.assertRaises(ledger.LedgerError):
-            decode('{"a":1,"a":2}')
+    def test_publication_failure_is_pending_not_done_and_exact_replay_finishes(self):
+        review = self.submit(CANDIDATE)
+        atomic = self.store._atomic
 
-    def test_task_ids_cannot_escape_directory(self):
-        for key in ("../escape", "/tmp/escape", "x/y", "x\\y", ".", "..", "UPPER", "a" * 65, "", "café"):
-            with self.subTest(key=key):
-                with self.assertRaises(ledger.LedgerError):
-                    self.store.new(key, task())
+        def fail_artifact(path, raw):
+            if path.suffix == '.md':
+                raise OSError('publication failed')
+            return atomic(path, raw)
 
-    def test_symlink_and_fifo_targets_and_locks_are_rejected_without_writes(self):
-        outside = self.root / "outside"
-        outside.write_text("do not change")
-        (self.directory / "linked.json").symlink_to(outside)
-        (self.directory / ".badlock.lock").symlink_to(outside)
-        for action in (lambda: self.store.show("linked"),
-                       lambda: self.store.new("linked", task()),
-                       lambda: self.store.new("badlock", task())):
-            with self.assertRaises((OSError, ledger.LedgerError)):
+        with patch.object(self.store, '_atomic', side_effect=fail_artifact):
+            with self.assertRaisesRegex(OSError, 'publication'):
+                self.submit(PASS)
+        self.assertEqual(self.store.load()['status'], 'publishing')
+        with self.assertRaisesRegex(DispatchError, 'exact passing'):
+            self.store.submit(review['ticket'], {'status': 'pass', 'basis': 'different review'})
+        complete = self.store.submit(review['ticket'], PASS)
+        self.assertEqual(complete['status'], 'complete')
+        self.assertTrue((self.root / complete['artifact']).exists())
+
+    def test_crash_after_artifact_before_completion_recovers_on_bare_resume(self):
+        self.submit(CANDIDATE)
+        write = self.store._write
+
+        def fail_complete(document):
+            if document['status'] == 'complete':
+                raise OSError('crash before completion checkpoint')
+            return write(document)
+
+        with patch.object(self.store, '_write', side_effect=fail_complete):
+            with self.assertRaises(OSError):
+                self.submit(PASS)
+        pending = self.store.load()
+        self.assertEqual(pending['status'], 'publishing')
+        before = (self.root / pending['artifact']).read_bytes()
+        self.assertEqual(Store(self.root).resume()['status'], 'complete')
+        self.assertEqual((self.root / pending['artifact']).read_bytes(), before)
+        self.assertEqual(len(list((self.root / '.agents/artifacts').glob('*.md'))), 1)
+
+    def test_failure_after_artifact_replace_resyncs_before_completing(self):
+        self.submit(CANDIDATE)
+        atomic = self.store._atomic
+
+        def fail_after_publish(path, raw):
+            atomic(path, raw)
+            if path.suffix == '.md':
+                raise OSError('directory sync may have failed')
+
+        with patch.object(self.store, '_atomic', side_effect=fail_after_publish):
+            with self.assertRaises(OSError):
+                self.submit(PASS)
+        with patch.object(self.store, '_atomic', wraps=atomic) as retried:
+            self.store.resume()
+        self.assertEqual([call.args[0].suffix for call in retried.call_args_list], ['.md', '.json'])
+
+    def test_existing_conflicting_artifact_is_never_overwritten(self):
+        review = self.submit(CANDIDATE)
+        artifact = self.root / f".agents/artifacts/solution-design-{review['run_id']}.md"
+        artifact.parent.mkdir()
+        artifact.write_text('other content')
+        with self.assertRaisesRegex(DispatchError, 'different content'):
+            self.submit(PASS)
+        self.assertEqual(artifact.read_text(), 'other content')
+        self.assertEqual(self.store.load()['status'], 'publishing')
+
+    def test_corruption_fails_closed_for_reads_starts_and_submissions(self):
+        valid = self.path.read_text()
+        bad_values = ['{', '[]', valid.replace('"schema_version": 1', '"schema_version": 999'),
+                      valid.replace('"schema_version": 1', '"schema_version": 1, "schema_version": 1'),
+                      valid.replace('"schema_version": 1', '"schema_version": NaN'),
+                      valid.replace('"prompt": "draft"', '"prompt": []')]
+        for raw in bad_values:
+            self.path.write_text(raw)
+            for action in (self.store.resume, lambda: self.store.start(REQUEST),
+                           lambda: self.store.submit(self.initial['ticket'], CANDIDATE)):
+                with self.assertRaises(DispatchError):
+                    action()
+                self.assertEqual(self.path.read_text(), raw)
+        for raw in ('{"a":1,"a":2}', 'Infinity', 'NaN', '{'):
+            with self.assertRaises(DispatchError):
+                decode(raw)
+
+    def test_managed_symlink_ancestors_and_nonregular_targets_are_rejected(self):
+        outside = self.root / 'outside'
+        outside.mkdir()
+        for linked in ('.agents', '.agents/sbd-adaptive'):
+            root = self.root / ('project-' + linked.replace('/', '-'))
+            root.mkdir()
+            path = root / linked
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.symlink_to(outside, target_is_directory=True)
+            for action in (Store(root).resume, lambda: Store(root).start(REQUEST)):
+                with self.assertRaises(DispatchError):
+                    action()
+        self.assertEqual(list(outside.iterdir()), [])
+        target = self.root / 'outside-file'
+        target.write_text('do not change')
+        self.path.unlink()
+        self.path.symlink_to(target)
+        for action in (self.store.resume, lambda: self.store.start(REQUEST)):
+            with self.assertRaises((OSError, DispatchError)):
                 action()
-        self.assertEqual(outside.read_text(), "do not change")
-        os.mkfifo(self.directory / "fifo.json")
-        with self.assertRaises(ledger.LedgerError):
-            self.store.show("fifo")
-        alias = self.root / "alias"
-        alias.symlink_to(self.directory, target_is_directory=True)
-        with self.assertRaises(ledger.LedgerError):
-            Store(alias).show("task")
+        self.assertEqual(target.read_text(), 'do not change')
+        self.path.unlink()
+        os.mkfifo(self.path)
+        with self.assertRaises(DispatchError):
+            self.store.resume()
 
-    def test_private_file_permissions_and_ignored_leftover_temporary(self):
-        self.assertEqual((self.directory / "task.json").stat().st_mode & 0o777, 0o600)
-        (self.directory / ".task.dead.tmp").write_text("partial interrupted write")
-        self.assertEqual(self.store.show("task")["revision"], 1)
+    def test_lock_and_artifact_symlinks_rejected(self):
+        target = self.root / 'outside-file'
+        target.write_text('safe')
+        lock = self.path.parent / '.run.lock'
+        lock.unlink()
+        lock.symlink_to(target)
+        with self.assertRaises(OSError):
+            self.submit(CANDIDATE)
+        lock.unlink()
+        review = self.submit(CANDIDATE)
+        artifacts = self.root / '.agents/artifacts'
+        artifacts.symlink_to(self.path.parent, target_is_directory=True)
+        with self.assertRaises(DispatchError):
+            self.submit(PASS)
+        artifacts.unlink()
+        artifacts.mkdir()
+        (artifacts / f"solution-design-{review['run_id']}.md").symlink_to(target)
+        with self.assertRaises(OSError):
+            self.store.resume()
+        self.assertEqual(target.read_text(), 'safe')
 
-    def test_two_cli_writers_same_expected_revision_only_one_commits(self):
+    def test_private_permissions_and_ignored_leftover_temporary(self):
+        self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
+        (self.path.parent / '.run.dead.tmp').write_text('partial')
+        self.assertEqual(self.store.resume(), self.initial)
+        self.submit(CANDIDATE)
+        complete = self.submit(PASS)
+        self.assertEqual((self.root / complete['artifact']).stat().st_mode & 0o777, 0o600)
+
+    def test_created_directory_names_are_synced_even_on_retry(self):
+        sync = self.store._sync_directory
+        artifacts = self.root / '.agents/artifacts'
+        # Simulate mkdir succeeding before its parent sync fails.
+        artifacts.mkdir()
+        with patch.object(self.store, '_sync_directory', wraps=sync) as calls:
+            self.store._directories(artifacts, create=True)
+        self.assertEqual([call.args[0] for call in calls.call_args_list],
+                         [self.root, self.root / '.agents'])
+
+    def test_concurrent_final_results_publish_exactly_once(self):
+        self.submit(CANDIDATE)
+        self.concurrent_submission(PASS)
+        self.assertEqual(self.store.resume()['status'], 'complete')
+        self.assertEqual(len(list((self.root / '.agents/artifacts').glob('*.md'))), 1)
+
+    def test_two_cli_writers_only_one_advances_the_ticket(self):
+        self.concurrent_submission(CANDIDATE)
+        self.assertEqual(self.store.load()['prompt'], 'review')
+
+    def concurrent_submission(self, result):
+        ticket = self.store.load()['ticket']
         processes = []
-        for key in ("one", "two"):
-            process = subprocess.Popen([sys.executable, str(CLI), "--root", str(self.root), "record", "task", "--at", "1"],
-                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        for _ in range(2):
+            process = subprocess.Popen([sys.executable, str(CLI), '--root', str(self.root),
+                                        'done', ticket], stdin=subprocess.PIPE,
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             processes.append(process)
-            process.stdin.write(json.dumps(evidence(key)))
+            process.stdin.write(json.dumps(result))
             process.stdin.close()
             process.stdin = None
         outcomes = [p.communicate(timeout=10) for p in processes]
         self.assertEqual(sorted(p.returncode for p in processes), [0, 2])
-        self.assertTrue(any("stale revision" in stderr for _, stderr in outcomes))
-        view = self.store.show("task", history=True)
-        self.assertEqual(view["revision"], 2)
-        self.assertEqual(len(view["records"]), 1)
+        self.assertTrue(any('stale or duplicate' in err for _, err in outcomes))
 
-    def test_lock_timeout_and_process_death_release_without_stale_timer(self):
+    def test_lock_timeout_and_process_death_release(self):
         code = ("import fcntl,sys,time; f=open(sys.argv[1], 'r+'); "
                 "fcntl.flock(f,fcntl.LOCK_EX); print('locked',flush=True); time.sleep(60)")
-        process = subprocess.Popen([sys.executable, "-c", code, str(self.directory / ".task.lock")],
+        process = subprocess.Popen([sys.executable, '-c', code, str(self.path.parent / '.run.lock')],
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         try:
-            self.assertEqual(process.stdout.readline().strip(), "locked")
-            with self.assertRaisesRegex(ledger.LedgerError, "timed out"):
-                Store(self.directory, lock_timeout=0.05).record("task", evidence(), at=1)
+            self.assertEqual(process.stdout.readline().strip(), 'locked')
+            with self.assertRaisesRegex(DispatchError, 'timed out'):
+                Store(self.root, lock_timeout=0.05).submit(self.initial['ticket'], CANDIDATE)
             process.kill()
             process.communicate(timeout=5)
-            self.assertEqual(Store(self.directory, lock_timeout=0.2).record("task", evidence(), at=1)["revision"], 2)
+            self.assertEqual(Store(self.root, lock_timeout=0.2).submit(self.initial['ticket'], CANDIDATE)['prompt'], 'review')
         finally:
             if process.poll() is None:
                 process.kill()
                 process.communicate()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

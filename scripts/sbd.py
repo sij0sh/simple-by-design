@@ -1,46 +1,49 @@
 #!/usr/bin/env python3
-"""JSON-in/JSON-out adapter. Run from the task's project, not the skill directory."""
+"""Start/resume one focused design task; return results through the printed command."""
 
 import argparse
-import json
 from pathlib import Path
+import shlex
 import sys
 
-from engine import ledger
+from engine.prompts import render
+from engine.router import DispatchError
 from engine.state import Store, decode
 
 
 def parser():
-    result = argparse.ArgumentParser(description="Persistent adaptive solution-design ledger (no scheduler)")
-    result.add_argument("--root", type=Path, default=Path.cwd(), help="task project directory (default: cwd)")
-    commands = result.add_subparsers(dest="command", required=True)
-    for name in ("new", "show", "record", "finish"):
-        command = commands.add_parser(name)
-        command.add_argument("task", help="stable task ID; no paths")
-        if name in {"record", "finish"}:
-            command.add_argument("--at", type=int, required=True, help="expected current revision")
-        if name == "show":
-            command.add_argument("--at", type=int, help="reproduce a historical snapshot")
-            command.add_argument("--history", action="store_true", help="include event history through that revision")
+    result = argparse.ArgumentParser(description="Focused design prompts: start, return results, resume until DONE")
+    result.add_argument("--root", type=Path, default=Path.cwd(), help="task project (default: cwd)")
+    result.add_argument("--request", help="start with the complete request, constraints and permissions")
+    result.add_argument("command", nargs="?", choices=("done",))
+    result.add_argument("ticket", nargs="?", help="opaque ticket printed with the current prompt")
     return result
 
 
 def main(argv=None):
-    args = parser().parse_args(argv)
-    store = Store(args.root / ".agents" / "sbd-adaptive")
+    argument_parser = parser()
+    args = argument_parser.parse_args(argv)
+    if args.command == "done" and (args.request is not None or args.ticket is None):
+        argument_parser.error("done requires a printed ticket and no --request; send result JSON on stdin")
+    if args.ticket is not None and args.command != "done":
+        argument_parser.error("tickets are accepted only with done")
+    store = Store(args.root)
+    script = Path(__file__).resolve()
+    resume = " ".join(shlex.quote(str(value)) for value in ("python3", script, "--root", store.root))
     try:
-        if args.command == "show":
-            view = store.show(args.task, at=args.at, history=args.history)
+        if args.command == "done":
+            document = store.submit(args.ticket, decode(sys.stdin.read()))
+        elif args.request is not None:
+            document = store.start(args.request)
         else:
-            data = decode(sys.stdin.read())
-            if args.command == "new":
-                view = store.new(args.task, data)
-            else:
-                view = store.record(args.task, data, at=args.at, finish=args.command == "finish")
-        print(json.dumps(view, ensure_ascii=False, allow_nan=False, indent=2))
+            document = store.resume()
+        if document is None:
+            print(f"No current run. Start: {resume} --request '<complete request>'")
+        else:
+            print(render(document, script, store.root))
         return 0
-    except (ledger.LedgerError, OSError, UnicodeError, RecursionError) as error:
-        print(f"sbd: {error}", file=sys.stderr)
+    except (DispatchError, OSError, UnicodeError, RecursionError) as error:
+        print(f"sbd: {error}\nResume: {resume}", file=sys.stderr)
         return 2
 
 

@@ -1,73 +1,87 @@
-"""Deterministic semantic-contract fixtures, NOT autonomous agent evaluations."""
+"""Scripted result sequences check protocol only, not actual agent adherence."""
 
+import tempfile
 import unittest
 
-from support import add, answer, choice, design, evidence, ledger, question, review, task
+from support import Store, DispatchError
 
 
 class ScenarioFixtures(unittest.TestCase):
-    def test_feature_intent_waits_for_requester_not_engineering_default(self):
-        document = ledger.create("feature", task(request="Design notifications; delivery scope is unspecified"))
-        document = add(document, question(kind="intent", text="Email, in-app, or both?",
-            witness={"form": "pair", "a": "Email delivery", "b": "In-app only", "difference": "Different wanted behavior"}))
-        document = add(document, evidence("convention", "documented", "project", claim="Most existing features use email"))
-        with self.assertRaisesRegex(ledger.LedgerError, "requester evidence"):
-            add(document, answer(resolver="requester", sources=["convention"]))
-        document = add(document, {"type": "pause", "id": "ask", "reason": "Intent unresolved", "needs": "Requester's delivery scope"})
-        self.assertEqual(ledger.project(document)["status"], "blocked")
+    def run_design(self, request, draft, basis):
+        with tempfile.TemporaryDirectory() as root:
+            store = Store(root)
+            state = store.start(request)
+            state = store.submit(state['ticket'], {'status': 'candidate', 'text': draft})
+            state = store.submit(state['ticket'], {'status': 'pass', 'basis': basis})
+            self.assertEqual(state['status'], 'complete')
+            self.assertEqual(state['request'], request)
+            return state
 
-    def test_refactor_preserves_observed_order_rather_than_assuming_equivalence(self):
-        document = ledger.create("refactor", task(request="Design a behavior-preserving simplification"))
-        for record in (
-            evidence(claim="fixture caller exposes insertion order"),
-            question(text="May the refactor sort returned items?", witness={"form": "defeater",
-                     "claim": "Sorting is behavior-neutral", "condition": "Caller observes insertion order", "impact": "Changed output"}),
-            answer(text="No: caller observes order"),
-            design(text="Keep insertion order and simplify only internal duplication", depends_on=["q"]),
-        ):
-            document = add(document, record)
-        self.assertIn("q", ledger.project(document)["records"]["design"]["depends_on"])
+    def test_precise_trivial_design_needs_no_resolve_prompt(self):
+        state = self.run_design('Design a command printing Hello once; no questions needed.',
+                                'Use a single print. No implementation; test exact output when authorized.',
+                                'Local review: request covered; no tests run.')
+        self.assertIsNone(state['need'])
 
-    def test_incident_hypothesis_does_not_become_confirmed_cause(self):
-        document = ledger.create("incident", task(request="Design an investigation for intermittent 502 responses"))
-        document = add(document, question(text="Does connection exhaustion cause the 502s?"))
-        document = add(document, evidence("correlation", "inferred", "inference", claim="Errors correlate with load"))
-        with self.assertRaisesRegex(ledger.LedgerError, "requires observations"):
-            add(document, answer(sources=["correlation"], text="Exhaustion is confirmed"))
-        document = add(document, {"type": "pause", "id": "logs", "reason": "Cause unobserved", "needs": "Authorized discriminating connection/log observations"})
-        self.assertEqual(ledger.project(document)["records"]["q"]["status"], "open")
+    def test_reversible_choice_is_not_a_required_question(self):
+        state = self.run_design('Design a local scratch cache; format is implementer choice.',
+                                'Choose JSON rather than a database for this small cache; migrate if size warrants.',
+                                'Local review: reversible choice and revisit condition adequate.')
+        self.assertIn('JSON', state['candidate'])
 
-    def test_architectural_choice_retains_rival_tradeoff_and_revisit(self):
-        document = ledger.create("architecture", task(request="Design local durable state for a single process"))
-        document = add(document, evidence("policy", "documented", "project", claim="Prefer smallest conventional adequate solution"))
-        document = add(document, question(kind="choice", text="Flat file or database?"))
-        selected = choice(sources=["policy"], policy="defaults", text="Atomic JSON document",
-                          alternatives=[{"option": "Database", "rejected_because": "No query or multi-host requirement"}],
-                          tradeoff="Whole-document rewrite", revisit="Measured state scale exceeds adequate latency")
-        document = add(document, selected)
-        self.assertEqual(ledger.project(document)["records"]["a"]["alternatives"][0]["option"], "Database")
+    def test_report_only_scope_is_preserved_in_original_request(self):
+        state = self.run_design('Report-only design; do not edit the target repository.',
+                                'Propose one function; no files edited. Verification is future work.',
+                                'Local review: report-only scope honored; tests not run.')
+        self.assertIn('do not edit', state['request'])
 
-    def test_security_unknown_deployment_cannot_support_confirmed_exploitability(self):
-        document = ledger.create("security", task(request="Report-only security design assessment",
-                                                   permissions=["Read supplied source; no exploitation"]))
-        document = add(document, evidence("deployment", "unknown", "unknown", claim="Proxy authentication is unknown"))
-        document = add(document, question(text="Can an untrusted principal reach the handler?"))
-        with self.assertRaises(ledger.LedgerError):
-            add(document, answer(sources=["deployment"], text="Confirmed unauthenticated access"))
-        document = add(document, design(text="Conditional assessment; request deployment controls before asserting exploitability"))
-        with self.assertRaisesRegex(ledger.LedgerError, "unknown evidence"):
-            add(document, {"type": "check", "id": "bad-check", "criterion": "adequate", "design": "design",
-                           "result": "passed", "evidence": ["deployment"], "explanation": "Would be unsupported"})
-        self.assertEqual(ledger.project(document)["task"]["permissions"], ["Read supplied source; no exploitation"])
+    def test_unobserved_fact_can_remain_an_explicit_conditional(self):
+        state = self.run_design('Design diagnosis for intermittent timeout; no production access.',
+                                'Network loss is a hypothesis, not an observed cause. Compare packet loss with server timing when authorized.',
+                                'Local review: diagnosis conditional; unavailable evidence not invented.')
+        self.assertIn('hypothesis', state['candidate'])
 
-    def test_clarification_only_task_stays_blocked_without_invented_intent(self):
-        document = ledger.create("clarification", task(request="Design the requested output format; the format is unspecified"))
-        document = add(document, question(kind="intent", text="Which consumer and format?"))
-        document = add(document, {"type": "pause", "id": "requester", "reason": "Output contract missing", "needs": "Consumer's required format"})
-        with self.assertRaises(ledger.LedgerError):
-            add(document, review(3), finish=True)
-        self.assertIsNone(ledger.project(document)["design"])
+    def test_material_correction_requires_new_candidate_and_review(self):
+        with tempfile.TemporaryDirectory() as root:
+            store = Store(root)
+            state = store.start('Design report-only output preserving the original greeting.')
+            state = store.submit(state['ticket'], {'status': 'candidate', 'text': 'Print a changed greeting.'})
+            old_ticket = state['ticket']
+            state = store.submit(old_ticket, {'status': 'revise', 'feedback': 'Restore original greeting.'})
+            self.assertIn('Restore', Store(root).resume()['feedback'])
+            with self.assertRaises(DispatchError):
+                store.submit(old_ticket, {'status': 'pass', 'basis': 'stale review'})
+            with self.assertRaises(DispatchError):
+                store.submit(state['ticket'], {'status': 'pass', 'basis': 'cannot pass draft'})
+            state = store.submit(state['ticket'], {'status': 'candidate', 'text': 'Preserve original greeting.'})
+            state = store.submit(state['ticket'], {'status': 'pass', 'basis': 'Local re-review against original request; no tests run.'})
+            self.assertEqual(state['status'], 'complete')
+
+    def test_consequential_intent_blocks_then_resumes_with_requester_answer(self):
+        self.blocked_case('Design greeting; intended language unknown.',
+                          'Which language?', 'Changes externally visible output.',
+                          'Requester language preference.', 'English, per requester.')
+
+    def test_unavailable_required_independence_can_be_reported_blocked(self):
+        self.blocked_case('Design greeting; independent review is required.',
+                          'Can an independent reviewer be provided?',
+                          'Required assurance cannot be supplied by local review.',
+                          'Independent reviewer access.', 'Independent reviewer supplied separate findings.')
+
+    def blocked_case(self, request, question, consequence, needs, answer):
+        with tempfile.TemporaryDirectory() as root:
+            store = Store(root)
+            state = store.start(request)
+            state = store.submit(state['ticket'], {'status': 'need', 'question': question, 'consequence': consequence})
+            state = store.submit(state['ticket'], {'status': 'blocked', 'question': question, 'needs': needs})
+            resumed = Store(root).resume()
+            self.assertEqual(resumed, state)
+            self.assertEqual(resumed['status'], 'blocked')
+            self.assertFalse(resumed['artifact'])
+            state = store.submit(resumed['ticket'], {'status': 'resolved', 'text': answer, 'basis': 'Acquired resolver response.'})
+            self.assertEqual(state['prompt'], 'draft')
+            self.assertEqual(state['request'], request)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

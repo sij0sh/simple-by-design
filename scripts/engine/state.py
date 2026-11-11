@@ -1,4 +1,7 @@
-"""POSIX persistence owner: task paths, kernel locks, atomic JSON replacement."""
+"""POSIX checkpoint owner: safe paths, writer mutex and atomic publication.
+
+The mutex protects CLI transactions only, not the agent's other tools.
+"""
 
 from contextlib import contextmanager
 import fcntl
@@ -9,51 +12,85 @@ import stat
 import tempfile
 import time
 
-from . import ledger
+from . import router
+from .router import DispatchError, require
 
 
 def decode(raw):
-    """Reject duplicate keys and non-JSON constants instead of silently normalizing."""
+    """Reject duplicate keys and non-JSON constants."""
     def pairs(items):
         result = {}
         for key, value in items:
-            if key in result:
-                raise ledger.LedgerError(f"duplicate JSON key: {key}")
+            require(key not in result, f"duplicate JSON key: {key}")
             result[key] = value
         return result
 
     def constant(value):
-        raise ledger.LedgerError(f"invalid JSON constant: {value}")
+        raise DispatchError(f"invalid JSON constant: {value}")
 
     try:
         return json.loads(raw, object_pairs_hook=pairs, parse_constant=constant)
     except (ValueError, RecursionError) as error:
-        raise ledger.LedgerError(f"invalid JSON: {error}") from error
+        raise DispatchError(f"invalid JSON: {error}") from error
 
 
 class Store:
-    def __init__(self, directory, lock_timeout=5.0):
-        self.directory = Path(directory)
+    def __init__(self, root, lock_timeout=5.0):
+        self.root = Path(root).resolve()
+        self.directory = self.root / ".agents" / "sbd-adaptive"
+        self.path = self.directory / "run.json"
         self.lock_timeout = lock_timeout
 
-    def _path(self, task_id):
-        ledger.identifier(task_id)
-        ledger.require(not self.directory.is_symlink(), "state directory must not be a symlink")
-        return self.directory / f"{task_id}.json"
+    def _directories(self, directory, create=False):
+        """Reject symlinks in every managed ancestor below the chosen project root."""
+        current = self.root
+        for part in directory.relative_to(self.root).parts:
+            current = current / part
+            if create:
+                try:
+                    current.mkdir(mode=0o700)
+                except FileExistsError:
+                    pass
+            try:
+                mode = current.lstat().st_mode
+            except FileNotFoundError:
+                if not create:
+                    return
+                raise
+            require(stat.S_ISDIR(mode), f"not a real directory: {current}")
+            if create:
+                # Also sync existing names: a prior mkdir may have been interrupted
+                # before its parent sync. Files inside alone cannot make that durable.
+                self._sync_directory(current.parent)
+
+    @staticmethod
+    def _sync_directory(path):
+        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+    @staticmethod
+    def _regular(path):
+        try:
+            mode = path.lstat().st_mode
+        except FileNotFoundError:
+            return
+        require(stat.S_ISREG(mode), f"not a regular file: {path}")
 
     @staticmethod
     def _open(path, flags):
         fd = os.open(path, flags | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
         if not stat.S_ISREG(os.fstat(fd).st_mode):
             os.close(fd)
-            raise ledger.LedgerError(f"not a regular file: {path}")
+            raise DispatchError(f"not a regular file: {path}")
         return fd
 
     @contextmanager
-    def _lock(self, task_id):
-        self._path(task_id)
-        self.directory.mkdir(parents=True, exist_ok=True)
-        fd = self._open(self.directory / f".{task_id}.lock", os.O_CREAT | os.O_RDWR)
+    def _lock(self):
+        self._directories(self.directory, create=True)
+        fd = self._open(self.directory / ".run.lock", os.O_CREAT | os.O_RDWR)
         deadline = time.monotonic() + self.lock_timeout
         try:
             while True:
@@ -62,62 +99,103 @@ class Store:
                     break
                 except BlockingIOError:
                     if time.monotonic() >= deadline:
-                        raise ledger.LedgerError(f"timed out waiting for task lock: {task_id}")
+                        raise DispatchError("timed out waiting for checkpoint writer; retry")
                     time.sleep(0.01)
             yield
         finally:
-            # Never unlink lock files: waiters must continue using the same inode.
+            # Do not unlink: all waiters must continue using the same inode.
             os.close(fd)
 
-    def load(self, task_id):
-        path = self._path(task_id)
+    def _read(self, path):
+        self._directories(path.parent)
         with os.fdopen(self._open(path, os.O_RDONLY), encoding="utf-8") as stream:
-            document = decode(stream.read())
-        ledger.require(isinstance(document, dict) and document.get("task_id") == task_id,
-                       "state task ID does not match filename")
-        ledger.project(document)
-        return document
+            return stream.read()
 
-    def show(self, task_id, at=None, history=False):
-        document = self.load(task_id)
-        if at is not None:
-            ledger.require(type(at) is int and 1 <= at <= len(document["events"]), "snapshot revision out of range")
-            document["events"] = document["events"][:at]
-        view = ledger.project(document)
-        if history:
-            view["events"] = document["events"]
-        return view
+    def load(self):
+        return router.validate(decode(self._read(self.path)))
 
-    def _write(self, path, document):
-        # Validate/encode before opening a temporary file; original stays untouched on failure.
-        raw = json.dumps(document, ensure_ascii=False, allow_nan=False, indent=2) + "\n"
-        fd, temporary = tempfile.mkstemp(prefix=f".{path.stem}.", suffix=".tmp", dir=self.directory)
+    def _load_optional(self):
+        try:
+            return self.load()
+        except FileNotFoundError:
+            return None
+
+    def _atomic(self, path, raw):
+        self._directories(path.parent, create=True)
+        self._regular(path)
+        fd, temporary = tempfile.mkstemp(prefix=f".{path.stem}.", suffix=".tmp", dir=path.parent)
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as stream:
                 stream.write(raw)
                 stream.flush()
                 os.fsync(stream.fileno())
             os.replace(temporary, path)
-            directory_fd = os.open(self.directory, os.O_RDONLY | os.O_DIRECTORY)
-            try:
-                os.fsync(directory_fd)
-            finally:
-                os.close(directory_fd)
+            self._sync_directory(path.parent)
         finally:
             if os.path.exists(temporary):
                 os.unlink(temporary)
 
-    def new(self, task_id, task):
-        document = ledger.create(task_id, task)
-        with self._lock(task_id):
-            path = self._path(task_id)
-            ledger.require(not os.path.lexists(path), f"task already exists: {task_id}")
-            self._write(path, document)
-        return ledger.project(document)
+    def _write(self, document):
+        router.validate(document)
+        self._atomic(self.path, json.dumps(document, ensure_ascii=False, allow_nan=False, indent=2) + "\n")
 
-    def record(self, task_id, data, at, finish=False):
-        with self._lock(task_id):
-            document = self.load(task_id)
-            updated = ledger.append(document, data, at, finish=finish)
-            self._write(self._path(task_id), updated)
-        return ledger.project(updated)
+    @staticmethod
+    def _artifact(document):
+        return ("# Solution design\n\n## Request\n\n" + document["request"]
+                + "\n\n## Design\n\n" + document["candidate"]
+                + "\n\n## Review basis\n\n" + document["review"]
+                + "\n\nDesign complete, not implementation. Verification/review claims are supplied "
+                "by the agent, not independently checked by the CLI.\n")
+
+    def _finish(self, document):
+        """Replay a durable passing review without publishing a second artifact."""
+        path = self.root / document["artifact"]
+        expected = self._artifact(document)
+        try:
+            existing = self._read(path)
+        except FileNotFoundError:
+            pass
+        else:
+            require(existing == expected, f"artifact exists with different content: {path}")
+        # An earlier replace might have succeeded before a directory-fsync failure.
+        # Publish the same bytes to establish durability before marking complete.
+        self._atomic(path, expected)
+        complete = {**document, "status": "complete"}
+        self._write(complete)
+        return complete
+
+    def start(self, request):
+        router.require(router.text(request), "--request must be nonempty text")
+        with self._lock():
+            current = self._load_optional()
+            if current is not None and current["status"] != "complete":
+                require(current["request"] == request,
+                        "a different request is active; resume with the bare invocation")
+                return self._finish(current) if current["status"] == "publishing" else current
+            document = router.new(request)
+            self._write(document)
+            return document
+
+    def resume(self):
+        # A no-state usage query must not create any project files.
+        current = self._load_optional()
+        if current is None:
+            return None
+        with self._lock():
+            current = self.load()
+            return self._finish(current) if current["status"] == "publishing" else current
+
+    def submit(self, ticket, result):
+        # Missing state is an error, not an implicit new run.
+        require(self._load_optional() is not None, "no active run; start with --request TEXT")
+        with self._lock():
+            current = self.load()
+            require(current["ticket"] == ticket and current["status"] != "complete",
+                    "stale or duplicate ticket; resume with the bare invocation")
+            if current["status"] == "publishing":
+                require(result == {"status": "pass", "basis": current["review"]},
+                        "publication pending; resume or replay the exact passing result")
+                return self._finish(current)
+            updated = router.advance(current, result)
+            self._write(updated)
+            return self._finish(updated) if updated["status"] == "publishing" else updated
